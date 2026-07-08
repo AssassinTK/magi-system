@@ -933,7 +933,7 @@ async function triggerRevote(){
 const ENGINES = {
   ollama: { url:"http://localhost:11434", model:"qwen2.5:14b", urlLabel:"OLLAMA ENDPOINT", modelLabel:"MODEL",
     hint:"本機 Ollama，免費、資料不出本機。終端機需常駐執行 `ollama serve`（或已設開機自動啟動）。" },
-  gemini: { url:"http://localhost:8643", model:"gemini-2.5-pro", urlLabel:"橋接 SERVER", modelLabel:"MODEL（flash 較快／pro 較強）",
+  gemini: { url:"http://localhost:8643", model:"gemini-3.1-flash-lite", urlLabel:"橋接 SERVER", modelLabel:"MODEL（免費方案：pro系列配額0；3.5-flash每天僅20次；3.1-flash-lite每天500次，此為預設）",
     hint:"雲端 Gemini，速度快、品質穩定。需先啟動橋接 server：終端機執行\n cd \"~/Desktop/claude automation/magi/gemini-bridge\" && node bridge-server.js" }
 };
 
