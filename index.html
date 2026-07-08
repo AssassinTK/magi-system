@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050508">
+<title>MAGI SYSTEM — 三賢人決策支援</title>
+<style>
+:root{
+  --bg:#050508;
+  --panel:#0d0d14;
+  --orange:#ff7b00;
+  --orange-dim:#a34f00;
+  --green:#33ff77;
+  --red:#ff3344;
+  --yellow:#ffcc33;
+  --text:#e8e0d0;
+  --dim:#7a7468;
+  --mono:"SF Mono","JetBrains Mono","Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,123,0,.012) 3px,rgba(255,123,0,.012) 4px)}
+.wrap{max-width:860px;margin:0 auto}
+header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+header h1{font-size:18px;color:var(--orange);letter-spacing:4px}
+header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
+.hstat{font-size:10px;color:var(--green);text-align:right;line-height:1.6}
+.hstat .off{color:var(--red)}
+
+.progress-rail{border:1px solid var(--orange-dim);background:var(--panel);padding:7px 12px;margin:14px 0 0;font-size:11px;color:var(--orange);letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;gap:8px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+#prail-txt{animation:blink 1.2s steps(2) infinite}
+.progress-rail #prail-time{color:var(--dim);font-size:10px;flex-shrink:0}
+
+.magi-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px;margin:14px 0;position:relative}
+.unit{border:2px solid var(--orange-dim);background:var(--panel);padding:10px 12px;min-height:96px;position:relative;transition:border-color .3s,box-shadow .3s;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+#u-melchior{grid-column:1;grid-row:1}
+#u-casper{grid-column:2;grid-row:1 / span 2}
+#u-balthasar{grid-column:1;grid-row:2}
+.unit .uname{font-size:14px;font-weight:bold;color:var(--orange);letter-spacing:2px}
+.unit .urole{font-size:10px;color:var(--dim);margin-top:2px}
+.unit .ustat{margin-top:10px;font-size:13px;letter-spacing:2px;min-height:18px}
+.unit .uconf{font-size:10px;color:var(--dim);margin-top:4px}
+.unit.thinking{border-color:var(--orange);box-shadow:0 0 18px rgba(255,123,0,.25)}
+.unit.thinking .ustat{color:var(--orange);animation:blink 1s steps(2) infinite}
+.unit.v-可決{border-color:var(--green);box-shadow:0 0 18px rgba(51,255,119,.18)}
+.unit.v-可決 .ustat{color:var(--green)}
+.unit.v-否決{border-color:var(--red);box-shadow:0 0 18px rgba(255,51,68,.22)}
+.unit.v-否決 .ustat{color:var(--red)}
+.unit.v-保留 .ustat{color:var(--yellow)}
+.unit.v-保留{border-color:var(--yellow)}
+.magi-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--bg);border:1px solid var(--orange-dim);padding:4px 12px;font-size:11px;color:var(--orange);letter-spacing:3px;z-index:2}
+@keyframes blink{50%{opacity:.25}}
+
+.console{border:1px solid #222;background:#07070c;padding:8px 12px;font-size:11px;color:var(--dim);height:74px;overflow-y:auto;line-height:1.7;margin-bottom:14px}
+.console .ln-sys{color:var(--orange-dim)}
+.console .ln-ok{color:var(--green)}
+.console .ln-err{color:var(--red)}
+
+.inbox{border:1px solid var(--orange-dim);padding:14px;margin-bottom:14px}
+.inbox label{font-size:11px;color:var(--orange);letter-spacing:2px;display:block;margin-bottom:6px}
+textarea,input[type=text]{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:16px;padding:10px;resize:vertical}
+textarea:focus,input:focus{outline:none;border-color:var(--orange)}
+#q{min-height:64px}
+#ctx{min-height:40px;margin-top:8px}
+.mode-row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.mode-btn{flex:1;min-width:140px;background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:12px;padding:8px;cursor:pointer;letter-spacing:1px}
+.mode-btn.on{border-color:var(--orange);color:var(--orange)}
+.mode-btn small{display:block;font-size:9px;margin-top:3px;color:var(--dim)}
+.tmpl-row{display:flex;gap:6px;margin-bottom:8px}
+.tmpl-btn{flex:1;background:none;border:1px solid var(--orange-dim);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:6px 4px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:transform .08s ease,opacity .08s ease,border-color .2s,color .2s}
+.tmpl-btn:hover{border-color:var(--orange);color:var(--orange)}
+.tmpl-btn:active{transform:scale(.97);opacity:.85}
+#go{width:100%;background:var(--orange);border:none;color:#000;font-family:var(--mono);font-size:15px;font-weight:bold;letter-spacing:4px;padding:12px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+#go:disabled{background:#3a2a10;color:#665;cursor:not-allowed}
+#go,.mode-btn,#eng-ollama,#eng-gemini{transition:transform .08s ease,opacity .08s ease,border-color .2s}
+#go:active,.mode-btn:active,#eng-ollama:active,#eng-gemini:active{transform:scale(.97);opacity:.85}
+details summary:active{background:rgba(255,123,0,.12)}
+button:focus-visible,details summary:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.verdict{display:none;border:2px solid;padding:16px;text-align:center;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+.verdict .vtitle{font-size:30px;font-weight:bold;letter-spacing:10px}
+.verdict .vsub{font-size:11px;margin-top:6px;color:var(--dim)}
+.verdict.可決{display:block;border-color:var(--green);color:var(--green);background:rgba(51,255,119,.05)}
+.verdict.否決{display:block;border-color:var(--red);color:var(--red);background:rgba(255,51,68,.05)}
+.verdict.再審議{display:block;border-color:var(--yellow);color:var(--yellow);background:rgba(255,204,51,.05)}
+#revote-btn{display:none;margin-top:14px;background:none;border:1px solid var(--yellow);color:var(--yellow);font-family:var(--mono);font-size:12px;letter-spacing:2px;padding:9px 18px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:transform .08s ease,opacity .08s ease}
+.verdict.再審議 #revote-btn{display:inline-block}
+#revote-btn:active{transform:scale(.97);opacity:.85}
+#revote-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.jdoc{display:none;border:1px solid var(--orange-dim);background:var(--panel);padding:14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.jdoc.show{display:block}
+.jruling{font-size:17px;color:var(--orange);letter-spacing:2px;line-height:1.7;border-bottom:1px solid #2a2a33;padding-bottom:10px;margin-bottom:6px}
+.jsec{margin-top:12px;font-size:10px;color:var(--dim);letter-spacing:2px}
+.jbody{font-size:13px;line-height:1.8;margin-top:4px}
+ul.jbody{padding-left:18px}
+.joneliner{margin-top:14px;padding:10px 12px;border-left:3px solid var(--orange);color:var(--yellow);font-size:14px;line-height:1.7}
+.uq{color:var(--red);line-height:1.7}
+.ubet{color:var(--yellow)}
+#fu-box{margin-top:14px}
+#fu-q{min-height:44px;margin-bottom:8px}
+#fu-go{width:100%;background:none;border:1px solid var(--orange);color:var(--orange);font-family:var(--mono);font-size:12px;letter-spacing:2px;padding:9px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:transform .08s ease,opacity .08s ease}
+#fu-go:active{transform:scale(.97);opacity:.85}
+#fu-go:disabled{opacity:.4;cursor:not-allowed}
+#fu-out{margin-top:10px;font-size:13px;line-height:1.8;color:var(--text);white-space:pre-line}
+details{border:1px solid #2a2a33;margin-bottom:8px;background:var(--panel)}
+details summary{cursor:pointer;padding:10px 12px;font-size:12px;letter-spacing:1px;list-style:none;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▸";color:var(--dim)}
+details[open] summary::after{content:"▾"}
+details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--text)}
+.tag{font-size:11px;padding:1px 8px;border:1px solid}
+.tag.可決{color:var(--green);border-color:var(--green)}
+.tag.否決{color:var(--red);border-color:var(--red)}
+.tag.保留{color:var(--yellow);border-color:var(--yellow)}
+.body .sec{margin-top:8px;color:var(--dim);font-size:11px;letter-spacing:1px}
+.body ul{padding-left:18px;margin-top:4px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
+.settings-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
+.hist-item{border-bottom:1px solid #222;padding:8px 12px;font-size:11px;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+.hist-item b{color:var(--text);font-weight:normal}
+.review-item{border-bottom:1px solid #222;padding:8px 12px;font-size:11px;color:var(--dim)}
+.review-item .rq{color:var(--text);margin-bottom:4px}
+.review-item .rforecast{color:var(--dim);font-size:10px;line-height:1.6;white-space:pre-line;margin-bottom:8px}
+.review-btns{display:flex;gap:8px}
+.review-btns button{flex:1;background:none;border:1px solid var(--orange-dim);color:var(--orange);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:7px;cursor:pointer}
+.review-btns button:hover{border-color:var(--orange)}
+.review-btns .rb-true{border-color:var(--green);color:var(--green)}
+.review-btns .rb-false{border-color:var(--red);color:var(--red)}
+footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
+
+#lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,123,0,.012) 3px,rgba(255,123,0,.012) 4px)}
+#lockscreen.hide{display:none}
+.lockbox{width:100%;max-width:380px;border:2px solid var(--orange-dim);background:var(--panel);padding:22px 20px;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.lockbox h2{font-size:15px;color:var(--orange);letter-spacing:5px;text-align:center;margin-bottom:4px}
+.lockbox .lsub{font-size:10px;color:var(--dim);letter-spacing:2px;text-align:center;margin-bottom:18px}
+.lockbox label{font-size:11px;color:var(--orange);letter-spacing:2px;display:block;margin-bottom:6px}
+#lock-pass{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:15px;padding:10px;letter-spacing:2px}
+#lock-pass:focus{outline:none;border-color:var(--orange)}
+.lock-trust{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:10px;color:var(--dim);line-height:1.6}
+.lock-trust input{margin-top:2px}
+#lock-go{width:100%;background:var(--orange);border:none;color:#000;font-family:var(--mono);font-size:14px;font-weight:bold;letter-spacing:3px;padding:11px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+#lock-err{color:var(--red);font-size:11px;margin-top:10px;min-height:14px;letter-spacing:1px}
+@media(max-width:560px){
+  .magi-grid{grid-template-columns:1fr}
+  #u-melchior{grid-column:1;grid-row:1}
+  #u-balthasar{grid-column:1;grid-row:2}
+  #u-casper{grid-column:1;grid-row:3}
+  .magi-core{display:none}
+  header h1{font-size:15px}
+  #go{min-height:48px;padding:14px 12px}
+  .mode-btn{min-height:44px;padding:10px 8px;min-width:0;flex-basis:calc(50% - 5px)}
+  .tmpl-btn{min-height:40px;padding:8px 4px}
+  details summary{min-height:44px;padding:12px;display:flex;align-items:center}
+  .mode-row{gap:10px}
+  .jruling{font-size:16px;line-height:1.6}
+  .jbody{font-size:14.5px;line-height:1.85}
+  .jsec{font-size:11px;margin-top:16px}
+  .joneliner{font-size:15px}
+  .jdoc{padding:16px 14px}
+}
+@media(min-width:561px){
+  textarea,input[type=text]{font-size:14px}
+}
+@media(max-width:359px){
+  .mode-row{flex-direction:column}
+  .mode-btn{min-width:0;flex-basis:auto}
+}
+</style>
+</head>
+<body>
+
+<div id="lockscreen">
+  <div class="lockbox">
+    <h2>MAGI ACCESS</h2>
+    <div class="lsub">通行碼驗證 · PATTERN AUTHENTICATION</div>
+    <label>PASSPHRASE</label>
+    <input type="password" id="lock-pass" autocomplete="off" spellcheck="false">
+    <div class="lock-trust">
+      <input type="checkbox" id="lock-trust">
+      <label for="lock-trust" style="margin:0;color:var(--dim);font-size:10px;letter-spacing:0;display:inline">信任此裝置（下次免輸入通行碼）— 僅方便設計，不是額外防護，公用電腦請勿勾選</label>
+    </div>
+    <button id="lock-go">解鎖 UNLOCK</button>
+    <div id="lock-err"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>MAGI SYSTEM</h1>
+    <div class="sub">三賢人決策支援 · PERSONALITY TRANSPLANT OS</div>
+  </div>
+  <div class="hstat" id="hstat">LINK: 確認中...</div>
+</header>
+
+<div class="progress-rail" id="prail" style="display:none"><span id="prail-txt">待機</span><span id="prail-time"></span></div>
+<div class="magi-grid">
+  <div class="unit" id="u-melchior">
+    <div class="uname">MELCHIOR·1</div>
+    <div class="urole">科學家 — 邏輯 / 數據 / 可行性</div>
+    <div class="ustat" id="s-melchior">待機</div>
+    <div class="uconf" id="c-melchior"></div>
+  </div>
+  <div class="unit" id="u-casper">
+    <div class="uname">CASPER·3</div>
+    <div class="urole">女人 — 直覺 / 慾望 / 人性</div>
+    <div class="ustat" id="s-casper">待機</div>
+    <div class="uconf" id="c-casper"></div>
+  </div>
+  <div class="unit" id="u-balthasar">
+    <div class="uname">BALTHASAR·2</div>
+    <div class="urole">母親 — 保護 / 安全 / 延續</div>
+    <div class="ustat" id="s-balthasar">待機</div>
+    <div class="uconf" id="c-balthasar"></div>
+  </div>
+  <div class="magi-core">MAGI</div>
+</div>
+
+<div class="verdict" id="verdict">
+  <div class="vtitle" id="vtitle"></div>
+  <div class="vsub" id="vsub"></div>
+  <button id="revote-btn" onclick="triggerRevote()">啟動再表決 / FORCE REVOTE</button>
+</div>
+
+<div class="jdoc" id="jdoc"></div>
+
+<div class="console" id="console"></div>
+
+<div class="inbox">
+  <label>議案輸入 / PROPOSAL</label>
+  <div class="tmpl-row">
+    <button class="tmpl-btn" id="tmpl-buy" onclick="useTemplate('buy')">買 / BUY</button>
+    <button class="tmpl-btn" id="tmpl-switch" onclick="useTemplate('switch')">換 / SWITCH</button>
+    <button class="tmpl-btn" id="tmpl-doo" onclick="useTemplate('doo')">做 / BUILD</button>
+  </div>
+  <textarea id="q" placeholder="輸入要裁決的決策，例：要不要把排班系統從 NUEIP 換成自建 OR-Tools？"></textarea>
+  <textarea id="ctx" placeholder="補充背景（選填）：預算、時限、目前狀況..."></textarea>
+  <div class="mode-row">
+    <button class="mode-btn on" id="m-normal">通常議案<small>三分之二多數決</small></button>
+    <button class="mode-btn" id="m-critical">特級議案<small>全會一致 · 一票否決即廢案</small></button>
+  </div>
+  <button id="go">開始審議</button>
+</div>
+
+<div id="results"></div>
+
+<details id="settings">
+  <summary>系統設定 / CONFIG</summary>
+  <div class="settings-grid" style="grid-template-columns:1fr">
+    <div>
+      <label>MODEL ENGINE</label>
+      <div class="mode-row" style="margin:0 0 8px">
+        <button class="mode-btn on" id="eng-ollama">Ollama（本機）<small>免費 · 需常駐 Ollama</small></button>
+        <button class="mode-btn" id="eng-gemini">Gemini（雲端）<small>需啟動橋接 server</small></button>
+      </div>
+    </div>
+  </div>
+  <div class="settings-grid">
+    <div><label id="cfg-url-label">OLLAMA ENDPOINT</label><input type="text" id="cfg-url" value="http://localhost:11434"></div>
+    <div><label id="cfg-model-label">MODEL</label><input type="text" id="cfg-model" value="qwen2.5:14b"></div>
+  </div>
+  <div style="padding:0 12px 12px;font-size:10px;color:var(--dim);line-height:1.6" id="eng-hint"></div>
+</details>
+
+<details id="review-box">
+  <summary>案件回顧 / REVIEW <span id="review-title"></span></summary>
+  <div id="review-list"></div>
+</details>
+
+<details id="history-box">
+  <summary>審議記錄 / LOG</summary>
+  <div id="hist"></div>
+</details>
+
+<footer>NERV — GOD'S IN HIS HEAVEN. ALL'S RIGHT WITH THE WORLD.</footer>
+</div>
+
+<script>
+const VAULT = {
+  salt: "HZCjnMhAaUn1KjvJ6gmNxQ==",
+  iv: "uBmbstU1O/P98LpM",
+  iterations: 250000,
+  cipher: "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"
+};
+
+const UNITS = [
+  { id:"melchior", name:"MELCHIOR·1", temp:0.2, sys:"" },
+  { id:"balthasar", name:"BALTHASAR·2", temp:0.5, sys:"" },
+  { id:"casper", name:"CASPER·3", temp:0.9, sys:"" }
+];
+
+let PROMPT_TAIL = "";
+let SYNTH_SYS = "";
+let SYNTH_USER = "";
+let BRIDGE_TOKEN = "";
+const CHAT_TIMEOUT_MS = 60000;
+
+const $ = id => document.getElementById(id);
+let mode = "normal";
+let caseNo = parseInt(localStorage.getItem("magi_caseno")||"0");
+let lastCase = null; // brain-1：供再表決使用，{q, ctx, votes}
+
+// brain-7：買/換/做 議案模板
+const TEMPLATES = {
+  buy:    { q:"要不要買 ______？", ctx:"預算：\n用途／需求：\n時限：" },
+  switch: { q:"要不要把 ______ 換成 ______？", ctx:"目前方案：\n換的理由：\n轉換成本／風險：" },
+  doo:    { q:"要不要自己做 ______（而非買現成的）？", ctx:"需求規模：\n自建 vs 現成方案比較：\n可投入時間／人力：" }
+};
+
+function useTemplate(k){
+  const t = TEMPLATES[k];
+  if(!t) return;
+  const qEl = $("q"), ctxEl = $("ctx");
+  const hasDraft = qEl.value.trim() !== "" || ctxEl.value.trim() !== "";
+  if(hasDraft && !confirm("套用範本會覆蓋目前已輸入的草稿內容，確定要繼續嗎？")) return;
+  qEl.value = t.q;
+  ctxEl.value = t.ctx;
+  qEl.focus();
+}
+
+function updateRevoteBtn(verdictR){
+  $("revote-btn").disabled = (verdictR !== "再審議");
+}
+function clog(msg, cls){
+  const c = $("console");
+  const d = document.createElement("div");
+  d.className = cls||"ln-sys";
+  d.textContent = `> ${msg}`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+let prailTimer = null, prailStartTs = 0;
+function prailStart_(){
+  $("prail").style.display = "flex";
+  prailStartTs = Date.now();
+  clearInterval(prailTimer);
+  prailTimer = setInterval(()=>{
+    $("prail-time").textContent = `${Math.floor((Date.now()-prailStartTs)/1000)}s`;
+  }, 500);
+  $("prail-time").textContent = "0s";
+}
+function prailSet(txt){
+  $("prail-txt").textContent = txt;
+}
+function prailStop(){
+  clearInterval(prailTimer);
+  prailTimer = null;
+  $("prail").style.display = "none";
+}
+
+async function checkLink(){
+  try{
+    const r = await fetch($("cfg-url").value+"/api/tags",{signal:AbortSignal.timeout(3000)});
+    const j = await r.json();
+    $("hstat").innerHTML = `LINK: <span>正常</span><br>${j.models.length} MODEL(S) READY`;
+    return true;
+  }catch(e){
+    const eng = localStorage.getItem("magi_engine")||"ollama";
+    $("hstat").innerHTML = `<span class="off">LINK: 斷線</span><br>${eng==="gemini"?"啟動橋接 server":"執行 ot 啟動 Ollama"}`;
+    return false;
+  }
+}
+
+function setUnit(id, cls, stat, conf){
+  const u = $("u-"+id);
+  u.className = "unit"+(cls?" "+cls:"");
+  $("s-"+id).textContent = stat;
+  $("c-"+id).textContent = conf||"";
+}
+
+async function callChat(messages, options, timeoutMs, wantJson=true){
+  const body = { model: $("cfg-model").value, stream:false, options, messages };
+  if(wantJson) body.format = "json";
+  const headers = {"Content-Type":"application/json"};
+  // X-Magi-Token 只有 gemini 橋接 server 認得；真實 Ollama 的 CORS preflight
+  // Access-Control-Allow-Headers 白名單不含此 header，帶了會被瀏覽器直接擋下（Failed to fetch）
+  const engine = localStorage.getItem("magi_engine")||"ollama";
+  if(engine === "gemini") headers["X-Magi-Token"] = BRIDGE_TOKEN;
+  let r;
+  try{
+    r = await fetch($("cfg-url").value+"/api/chat",{
+      method:"POST", headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+  }catch(e){
+    if(e.name==="TimeoutError"||e.name==="AbortError") throw new Error(`請求逾時（${Math.round(timeoutMs/1000)}s）`);
+    throw e;
+  }
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  return j.message.content;
+}
+
+function parseJsonLoose(raw){
+  try{ return JSON.parse(raw); }
+  catch(e){
+    const m = String(raw).match(/\{[\s\S]*\}/);
+    if(m){
+      try{ return JSON.parse(m[0]); }catch(e2){ /* 落到下方統一拋錯 */ }
+    }
+    const err = new Error("JSON_PARSE_FAIL");
+    err.raw = raw;
+    throw err;
+  }
+}
+
+async function askUnit(unit, question, context){
+  setUnit(unit.id, "thinking", "審議中...");
+  clog(`${unit.name} PATTERN 解析開始`);
+  const messages = [
+    { role:"system", content: unit.sys + PROMPT_TAIL },
+    { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}` }
+  ];
+  const options = { temperature: unit.temp, num_predict: 700 };
+  const raw = await callChat(messages, options, CHAT_TIMEOUT_MS, true);
+  let v;
+  try{
+    v = parseJsonLoose(raw);
+  }catch(e){
+    if(e.message !== "JSON_PARSE_FAIL") throw e;
+    clog(`${unit.name} 輸出格式錯誤，重試一次`, "ln-err");
+    const retryMessages = messages.concat([
+      { role:"assistant", content: e.raw },
+      { role:"user", content: "上面輸出不是合法 JSON，請重新只輸出純 JSON 物件，不要包含任何其他文字或說明。" }
+    ]);
+    const raw2 = await callChat(retryMessages, options, CHAT_TIMEOUT_MS, true);
+    v = parseJsonLoose(raw2);
+  }
+  if(!["可決","否決","保留"].includes(v.vote)) v.vote = "保留";
+  v.confidence = Math.max(0, Math.min(100, parseInt(v.confidence)||50));
+  setUnit(unit.id, "v-"+v.vote, v.vote, `信賴度 ${v.confidence}%`);
+  clog(`${unit.name} 裁定：${v.vote}（${v.confidence}%）`, v.vote==="否決"?"ln-err":"ln-ok");
+  return v;
+}
+
+function normalizeRevote(v){
+  // brain-1：程式碼層面強制二選一，不管 prompt 怎麼寫，非「可決」或「否決」（含「保留」）一律安全預設為「否決」
+  if(v.vote !== "可決" && v.vote !== "否決"){
+    v._coerced = true;
+    v.vote = "否決";
+  }
+  return v;
+}
+
+async function askUnitRevote(unit, question, context, myPrev, opponents){
+  setUnit(unit.id, "thinking", "再表決中...");
+  clog(`${unit.name} 針對性再表決開始 — 強制二選一`);
+  const oppText = opponents.map(o=>`【${o.name}】理由：${o.reason||"（無）"}${o.question?`\n質問：${o.question}`:""}`).join("\n\n");
+  const revoteInstr = `這是針對性再表決（原案三方不一致，已進入再審議，本輪強制二選一，不得投「保留」或任何其他值）。\n\n你上一輪投票：${myPrev.vote}（信賴度${myPrev.confidence}%）\n你上一輪理由：${myPrev.reason||"（無）"}\n\n其他兩位賢人的核心理由與質問：\n${oppText}\n\n規則：若維持原票，你必須具體擊破對方最強的論點；若改票，你必須說明是哪一個新事實或論點說服了你改變立場。vote 欄位只能是「可決」或「否決」兩者之一，絕對不可以輸出「保留」或其他任何值。`;
+  const messages = [
+    { role:"system", content: unit.sys + PROMPT_TAIL },
+    { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}` },
+    { role:"assistant", content: JSON.stringify({vote:myPrev.vote, confidence:myPrev.confidence, reason:myPrev.reason}) },
+    { role:"user", content: revoteInstr }
+  ];
+  const options = { temperature: unit.temp, num_predict: 700 };
+  const raw = await callChat(messages, options, CHAT_TIMEOUT_MS, true);
+  let v;
+  try{
+    v = parseJsonLoose(raw);
+  }catch(e){
+    if(e.message !== "JSON_PARSE_FAIL") throw e;
+    clog(`${unit.name} 再表決輸出格式錯誤，重試一次`, "ln-err");
+    const retryMessages = messages.concat([
+      { role:"assistant", content: e.raw },
+      { role:"user", content: "上面輸出不是合法 JSON，請重新只輸出純 JSON 物件，不要包含任何其他文字或說明，vote 欄位只能是「可決」或「否決」。" }
+    ]);
+    const raw2 = await callChat(retryMessages, options, CHAT_TIMEOUT_MS, true);
+    v = parseJsonLoose(raw2);
+  }
+  v.confidence = Math.max(0, Math.min(100, parseInt(v.confidence)||50));
+  normalizeRevote(v); // 程式碼層面強制，不信任 prompt 文字
+  setUnit(unit.id, "v-"+v.vote, v.vote + (v._coerced?"（已強制正規化）":""), `信賴度 ${v.confidence}%`);
+  clog(`${unit.name} 再表決裁定：${v.vote}${v._coerced?"（原始表決值非法，已依安全預設值處理）":""}`, v.vote==="否決"?"ln-err":"ln-ok");
+  return v;
+}
+
+// brain-2：判例比對 — 只餵給判決書起草這一步，絕不進三人各自獨立的第一輪表決 prompt
+function bigrams(s){
+  const clean = String(s||"").replace(/\s+/g,"");
+  const arr = [];
+  for(let i=0;i<clean.length-1;i++) arr.push(clean.slice(i,i+2));
+  return arr;
+}
+
+function similarity(a,b){
+  const A = bigrams(a), B = bigrams(b);
+  if(!A.length || !B.length) return 0;
+  const mapB = new Map();
+  B.forEach(g=>mapB.set(g,(mapB.get(g)||0)+1));
+  let inter = 0;
+  A.forEach(g=>{
+    const c = mapB.get(g);
+    if(c>0){ inter++; mapB.set(g, c-1); }
+  });
+  return (2*inter)/(A.length+B.length);
+}
+
+function loadFullCases(){
+  try{
+    const arr = JSON.parse(localStorage.getItem("magi_cases_full")||"[]");
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+
+function findPrecedents(q, n=2){
+  const cases = loadFullCases();
+  return cases
+    .map(c=>({ c, score: similarity(q, c.q) }))
+    .filter(x=>x.score > 0.15)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0, n)
+    .map(x=>x.c);
+}
+
+function precedentText(q){
+  const precedents = findPrecedents(q, 2);
+  if(!precedents.length) return "";
+  const lines = precedents.map(c=>
+    `【判例 #${String(c.no).padStart(3,"0")}】議案：${c.q}\n裁定：${c.verdict}${(c.jd&&c.jd.ruling)?`\n判詞：${c.jd.ruling}`:""}`
+  ).join("\n\n");
+  return `\n\n以下為過往類似判例（僅供judgment撰寫參考，不代表本案必須從同判）：\n${lines}`;
+}
+
+function saveFullCase(no,q,ctx,verdict,votes,jd){
+  let cases = loadFullCases();
+  cases = cases.filter(x=>x.no !== no); // 同 caseNo（再審議覆寫）先移除舊紀錄
+  cases.unshift({
+    no, q:q||"", ctx:ctx||"", verdict,
+    votes: votes.map(v=>({vote:v.vote, confidence:v.confidence})),
+    jd: jd || null,
+    t: Date.now()
+  });
+  localStorage.setItem("magi_cases_full", JSON.stringify(cases.slice(0,30)));
+}
+
+async function askSynth(question, context, votes, decision){
+  clog("MAGI 統合裁決核心 — 判決書起草中...");
+  const fullQ = question + (context ? `（背景：${context}）` : "");
+  const votesJson = JSON.stringify(UNITS.map((u,i)=>({unit:u.name, ...votes[i]})), null, 1);
+  let userContent = SYNTH_USER.replace("{{QUESTION}}", fullQ).replace("{{VOTES}}", votesJson);
+  if(decision) userContent = userContent.replace("{{DECISION}}", `${decision.r}（${decision.why||""}）`);
+  userContent += precedentText(question); // brain-2：判例只附加在判決書起草這一步
+  const messages = [
+    { role:"system", content: SYNTH_SYS },
+    { role:"user", content: userContent }
+  ];
+  const options = { temperature: 0.4, num_predict: 800 };
+  const raw = await callChat(messages, options, CHAT_TIMEOUT_MS, true);
+  try{
+    return parseJsonLoose(raw);
+  }catch(e){
+    if(e.message === "JSON_PARSE_FAIL") throw new Error("判決書無法解析");
+    throw e;
+  }
+}
+
+// brain-4：判決書一輪追問 — 只呼叫一次 LLM，不重跑三人
+async function askFollowup(question, jd, votes, followupQ){
+  clog("MAGI 統合裁決核心 — 追問處理中...");
+  const votesText = UNITS.map((u,i)=>`【${u.name}】${votes[i].vote}（${votes[i].confidence}%）：${votes[i].reason||"（無）"}`).join("\n");
+  const jdText = `裁定：${jd.ruling}\n論證：${jd.argument}\n反方最強論點與擊破：${jd.counter}\n六個月預測：${jd.forecast}`;
+  const sys = SYNTH_SYS + "\n\n這是判決書公告後的追問環節。請延續判詞立場直接回答問題，禁止重新翻案、禁止重新表決或改判、禁止輸出JSON或任何格式標記，150字以內，純文字回覆。";
+  const user = `議案：${question}\n\n判決書內容：\n${jdText}\n\n三賢人原始表決：\n${votesText}\n\n追問：${followupQ}`;
+  const messages = [
+    { role:"system", content: sys },
+    { role:"user", content: user }
+  ];
+  const options = { temperature:0.4, num_predict:300 };
+  const ans = await callChat(messages, options, CHAT_TIMEOUT_MS, false);
+  clog("追問回覆完成", "ln-ok");
+  return ans;
+}
+
+function renderJudgment(jd, question, votes){
+  $("jdoc").innerHTML = `
+    <div class="jruling">${esc(jd.ruling)}</div>
+    <div class="jsec">論證</div><div class="jbody">${esc(jd.argument)}</div>
+    <div class="jsec">反方最強論點與擊破</div><div class="jbody">${esc(jd.counter)}</div>
+    <div class="jsec">六個月預測（可證偽）</div><div class="jbody">${esc(jd.forecast)}</div>
+    ${(jd.conditions&&jd.conditions.length)?`<div class="jsec">執行條件與撤退絆線</div><ul class="jbody">${jd.conditions.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    ${jd.oneliner?`<div class="joneliner">「${esc(jd.oneliner)}」</div>`:""}
+    <details id="fu-box">
+      <summary>追問判決 / FOLLOW-UP</summary>
+      <div class="body">
+        <textarea id="fu-q" placeholder="針對這份判決書追問一個問題..."></textarea>
+        <button id="fu-go">送出追問</button>
+        <div id="fu-out"></div>
+      </div>
+    </details>`;
+  $("jdoc").classList.add("show");
+
+  $("fu-go").onclick = async ()=>{
+    const fq = $("fu-q").value.trim();
+    if(!fq) return;
+    $("fu-go").disabled = true;
+    $("fu-out").textContent = "追問中...";
+    try{
+      const ans = await askFollowup(question, jd, votes, fq);
+      $("fu-out").textContent = ans;
+    }catch(e){
+      $("fu-out").textContent = `追問失敗：${e.message}`;
+    }
+    $("fu-go").disabled = false;
+  };
+}
+
+function decide(votes){
+  const n = t => votes.filter(v=>v.vote===t).length;
+  if(mode==="critical"){
+    if(n("否決")>0) return {r:"否決", why:"特級議案 — 一票否決成立，提案廢棄"};
+    if(n("可決")===3) return {r:"可決", why:"全會一致 — 三賢人合意，最終定案"};
+    return {r:"再審議", why:"特級議案需全會一致，存在保留票"};
+  }
+  if(n("可決")>=2) return {r:"可決", why:`多數決成立（${n("可決")}/3 贊成）`};
+  if(n("否決")>=2) return {r:"否決", why:`多數決成立（${n("否決")}/3 反對）`};
+  return {r:"再審議", why:"未形成多數 — 建議補充資訊後重新提案"};
+}
+
+function renderResult(unit, v){
+  const d = document.createElement("details");
+  d.innerHTML = `
+    <summary><span style="color:var(--orange)">${unit.name}</span>
+      <span><span class="tag ${v.vote}">${v.vote}${v._failed?"（呼叫失敗）":""}</span> <span style="color:var(--dim)">${v.confidence}%</span></span>
+    </summary>
+    <div class="body">
+      <div style="white-space:pre-line">${esc(v.reason)}</div>
+      ${(v.concepts&&v.concepts.length)?`<div class="sec">引用概念</div><ul>${v.concepts.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+      ${(v.risks&&v.risks.length)?`<div class="sec">風險評估</div><ul>${v.risks.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+      ${v.question?`<div class="sec">尖銳質問</div><div class="uq">${esc(v.question)}</div>`:""}
+      ${v.bet?`<div class="sec">下注宣言</div><div class="ubet">${esc(v.bet)}</div>`:""}
+      ${v.suggestion?`<div class="sec">48小時行動</div><div>${esc(v.suggestion)}</div>`:""}
+    </div>`;
+  $("results").appendChild(d);
+}
+
+function esc(s){ return String(s??"").replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+
+function saveHistory(no, q, ctx, verdict, votes, jd){
+  let h;
+  try{ h = JSON.parse(localStorage.getItem("magi_history")||"[]"); }
+  catch(e){ h = []; }
+  if(!Array.isArray(h)) h = [];
+  h = h.filter(x=>x.no !== no); // 同 caseNo 舊紀錄先移除（brain-1 再議覆寫用）
+  h.unshift({
+    schemaVersion: 2,
+    no, t:new Date().toLocaleString("zh-TW"),
+    q:(q||"").slice(0,60), ctx:(ctx||"").slice(0,200),
+    verdict,
+    votes: votes.map(v=>({vote:v.vote, confidence:v.confidence})),
+    jd: jd || null
+  });
+  localStorage.setItem("magi_history", JSON.stringify(h.slice(0,50)));
+  renderHistory();
+}
+
+// brain-6：案件結果回顧（簡化版，只做結果標記，不做 Brier 校準）
+function gradeCase(no, outcome){
+  let cases = loadFullCases();
+  const idx = cases.findIndex(x=>x.no === no);
+  if(idx === -1) return;
+  cases[idx].outcome = outcome;
+  localStorage.setItem("magi_cases_full", JSON.stringify(cases.slice(0,30)));
+  renderReview();
+}
+
+function renderReview(){
+  const cases = loadFullCases();
+  const pending = cases.filter(c=>c.jd && c.jd.forecast && !c.outcome);
+  $("review-title").textContent = `（待驗證 ${pending.length} 筆）`;
+  $("review-list").innerHTML = pending.map(c=>`
+    <div class="review-item">
+      <div class="rq">#${String(c.no).padStart(3,"0")} ${esc(c.q)}</div>
+      <div class="rforecast">${esc(c.jd.forecast)}</div>
+      <div class="review-btns">
+        <button class="rb-true" onclick="gradeCase(${c.no},'成真')">成真</button>
+        <button class="rb-false" onclick="gradeCase(${c.no},'未成真')">未成真</button>
+      </div>
+    </div>`).join("") || `<div class="review-item">尚無待驗證案件</div>`;
+}
+
+function renderHistory(){
+  let h;
+  try{ h = JSON.parse(localStorage.getItem("magi_history")||"[]"); }
+  catch(e){ h = []; }
+  if(!Array.isArray(h)) h = [];
+  $("hist").innerHTML = h.map(x=>{
+    if(!x || x.schemaVersion !== 2 || typeof x.votes === "string" || !Array.isArray(x.votes)){
+      return `<div class="hist-item"><span>#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）")}</b></span><span style="color:var(--dim)">舊版格式紀錄，結構已升級無法完整顯示<br>${esc(x&&x.t||"")}</span></div>`;
+    }
+    const voteStr = x.votes.map(v=>v.vote).join("/");
+    return `<div class="hist-item"><span>#${String(x.no).padStart(3,"0")} <b>${esc(x.q)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span></div>`;
+  }).join("") || `<div class="hist-item">尚無記錄</div>`;
+}
+
+async function run(){
+  const q = $("q").value.trim();
+  if(!q){ clog("議案內容為空", "ln-err"); return; }
+  if(!await checkLink()){
+    const eng = localStorage.getItem("magi_engine")||"ollama";
+    clog(eng==="gemini" ? "MAGI 連線失敗 — 請先啟動橋接 server（見系統設定提示）" : "MAGI 連線失敗 — 請先啟動 Ollama（終端機輸入 ot）", "ln-err");
+    return;
+  }
+
+  $("go").disabled = true;
+  $("verdict").className = "verdict";
+  $("jdoc").className = "jdoc";
+  $("jdoc").innerHTML = "";
+  $("results").innerHTML = "";
+  UNITS.forEach(u=>setUnit(u.id,"","待機"));
+  lastCase = null; // 新提訴，舊案再表決按鈕失效
+  caseNo++;
+  localStorage.setItem("magi_caseno", caseNo);
+  clog(`提訴 #${String(caseNo).padStart(3,"0")} 受理 — ${mode==="critical"?"特級議案（全會一致制）":"通常議案（多數決制）"}`);
+
+  const votes = [];
+  try{
+    prailStart_();
+    const engine = localStorage.getItem("magi_engine")||"ollama";
+    const ctxVal0 = $("ctx").value.trim();
+    if(engine === "gemini"){
+      UNITS.forEach(u=>setUnit(u.id,"thinking","審議中..."));
+      prailSet("三賢人併發審議中...");
+      const settled = await Promise.allSettled(UNITS.map(u=>askUnit(u, q, ctxVal0)));
+      settled.forEach((s,i)=>{
+        const unit = UNITS[i];
+        let v;
+        if(s.status === "fulfilled"){
+          v = s.value;
+        }else{
+          const reason = (s.reason && s.reason.message) || String(s.reason);
+          v = { vote:"保留", reason:"本輪呼叫失敗："+reason, confidence:0, _failed:true };
+          setUnit(unit.id, "v-保留", "保留", "呼叫失敗");
+          clog(`${unit.name} 呼叫失敗：${reason}`, "ln-err");
+        }
+        votes.push(v);
+        renderResult(unit, v);
+      });
+    }else{
+      for(const unit of UNITS){
+        prailSet(`${unit.name} 審議中...`);
+        const v = await askUnit(unit, q, ctxVal0);
+        votes.push(v);
+        renderResult(unit, v);
+      }
+    }
+    const fin = decide(votes);
+    $("verdict").classList.add(fin.r);
+    $("vtitle").textContent = fin.r;
+    $("vsub").textContent = fin.why;
+    clog(`最終裁定：${fin.r} — ${fin.why}`, fin.r==="否決"?"ln-err":"ln-ok");
+    $("verdict").scrollIntoView({behavior:"smooth", block:"start"});
+    const ctxVal = $("ctx").value.trim();
+    let jd = null;
+    prailSet("MAGI 統合裁決核心起草中...");
+    try{
+      jd = await askSynth(q, ctxVal, votes, fin);
+      renderJudgment(jd, q, votes);
+      clog(`判決書成立：${jd.ruling}`, "ln-ok");
+    }catch(e){
+      clog(`判決書起草失敗：${e.message}（三票裁定仍有效）`, "ln-err");
+    }
+    saveHistory(caseNo, q, ctxVal, fin.r, votes, jd);
+    saveFullCase(caseNo, q, ctxVal, fin.r, votes, jd);
+    lastCase = { q, ctx: ctxVal, votes };
+    updateRevoteBtn(fin.r);
+    prailStop();
+  }catch(e){
+    clog(`系統異常：${e.message}`, "ln-err");
+    UNITS.forEach((u,i)=>{ if(!votes[i]) setUnit(u.id,"","連線中斷"); });
+    prailStop();
+  }
+  $("go").disabled = false;
+}
+
+async function triggerRevote(){
+  if(!lastCase){ clog("無可再議的案件", "ln-err"); return; }
+  if(!await checkLink()){
+    const eng = localStorage.getItem("magi_engine")||"ollama";
+    clog(eng==="gemini" ? "MAGI 連線失敗 — 請先啟動橋接 server（見系統設定提示）" : "MAGI 連線失敗 — 請先啟動 Ollama（終端機輸入 ot）", "ln-err");
+    return;
+  }
+  const { q, ctx, votes: prevVotes } = lastCase;
+  $("revote-btn").disabled = true;
+  $("go").disabled = true;
+  $("results").innerHTML = "";
+  $("jdoc").className = "jdoc";
+  $("jdoc").innerHTML = "";
+  UNITS.forEach(u=>setUnit(u.id,"","待機"));
+  clog(`案號 #${String(caseNo).padStart(3,"0")} 進入再審議 — 啟動針對性再表決（強制二選一）`);
+
+  const newVotes = [];
+  try{
+    prailStart_();
+    for(let i=0;i<UNITS.length;i++){
+      const unit = UNITS[i];
+      prailSet(`${unit.name} 再表決中...`);
+      const opponents = UNITS
+        .map((ou,oi)=>({ou,oi}))
+        .filter(x=>x.oi!==i)
+        .map(x=>({ name:x.ou.name, reason:prevVotes[x.oi].reason, question:prevVotes[x.oi].question }));
+      const v = await askUnitRevote(unit, q, ctx, prevVotes[i], opponents);
+      newVotes.push(v);
+      renderResult(unit, v);
+    }
+    const fin = decide(newVotes);
+    $("verdict").className = "verdict";
+    $("verdict").classList.add(fin.r);
+    $("vtitle").textContent = fin.r;
+    $("vsub").textContent = fin.why + "（再審議二輪結果）";
+    clog(`再審議最終裁定：${fin.r} — ${fin.why}`, fin.r==="否決"?"ln-err":"ln-ok");
+    $("verdict").scrollIntoView({behavior:"smooth", block:"start"});
+
+    let jd = null;
+    prailSet("MAGI 統合裁決核心重新起草判決書...");
+    try{
+      jd = await askSynth(q, ctx, newVotes, fin);
+      const coercedCount = newVotes.filter(v=>v._coerced).length;
+      if(coercedCount > 0){
+        jd.ruling = `${jd.ruling || ""}（${coercedCount} 個單元表決格式異常，已依安全預設值處理）`;
+      }
+      renderJudgment(jd, q, newVotes);
+      clog(`再審議判決書成立：${jd.ruling}`, "ln-ok");
+    }catch(e){
+      clog(`再審議判決書起草失敗：${e.message}（表決結果仍有效）`, "ln-err");
+    }
+    saveHistory(caseNo, q, ctx, fin.r, newVotes, jd); // 同 caseNo 覆寫舊紀錄
+    saveFullCase(caseNo, q, ctx, fin.r, newVotes, jd); // 同 caseNo 覆寫舊紀錄
+    lastCase = { q, ctx, votes: newVotes };
+    updateRevoteBtn(fin.r);
+    prailStop();
+  }catch(e){
+    clog(`再審議系統異常：${e.message}`, "ln-err");
+    UNITS.forEach((u,i)=>{ if(!newVotes[i]) setUnit(u.id,"","連線中斷"); });
+    prailStop();
+  }
+  $("revote-btn").disabled = false;
+  $("go").disabled = false;
+}
+
+const ENGINES = {
+  ollama: { url:"http://localhost:11434", model:"qwen2.5:14b", urlLabel:"OLLAMA ENDPOINT", modelLabel:"MODEL",
+    hint:"本機 Ollama，免費、資料不出本機。終端機需常駐執行 `ollama serve`（或已設開機自動啟動）。" },
+  gemini: { url:"http://localhost:8643", model:"gemini-2.5-flash", urlLabel:"橋接 SERVER", modelLabel:"MODEL（flash 較快／pro 較強）",
+    hint:"雲端 Gemini，速度快、品質穩定。需先啟動橋接 server：終端機執行\n cd \"~/Desktop/claude automation/magi/gemini-bridge\" && node bridge-server.js" }
+};
+
+function setEngine(name){
+  const e = ENGINES[name];
+  $("cfg-url").value = e.url;
+  $("cfg-model").value = e.model;
+  $("cfg-url-label").textContent = e.urlLabel;
+  $("cfg-model-label").textContent = e.modelLabel;
+  $("eng-hint").textContent = e.hint;
+  $("eng-ollama").classList.toggle("on", name==="ollama");
+  $("eng-gemini").classList.toggle("on", name==="gemini");
+  localStorage.setItem("magi_engine", name);
+  checkLink();
+}
+
+function boot(){
+  $("m-normal").onclick = ()=>{ mode="normal"; $("m-normal").classList.add("on"); $("m-critical").classList.remove("on"); };
+  $("m-critical").onclick = ()=>{ mode="critical"; $("m-critical").classList.add("on"); $("m-normal").classList.remove("on"); };
+  $("go").onclick = run;
+  $("eng-ollama").onclick = ()=>setEngine("ollama");
+  $("eng-gemini").onclick = ()=>setEngine("gemini");
+  setEngine(localStorage.getItem("magi_engine") || "ollama");
+
+  clog("MAGI SYSTEM 起動 — 第7世代有機電腦 · 人格移植OS");
+  renderHistory();
+  renderReview();
+}
+
+// ━━ 解鎖畫面 / WebCrypto 解密流程（sec-2）━━
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+async function deriveVaultKey(passphrase, extractable){
+  const baseKey = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(passphrase), {name:"PBKDF2"}, false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt: b64ToBuf(VAULT.salt), iterations: VAULT.iterations, hash:"SHA-256"},
+    baseKey,
+    {name:"AES-GCM", length:256},
+    !!extractable,
+    ["decrypt"]
+  );
+}
+
+async function decryptVaultWithKey(key){
+  const plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv: b64ToBuf(VAULT.iv)}, key, b64ToBuf(VAULT.cipher));
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+
+function applyPayload(p){
+  UNITS[0].sys = p.melchior_sys;
+  UNITS[1].sys = p.balthasar_sys;
+  UNITS[2].sys = p.casper_sys;
+  PROMPT_TAIL = p.prompt_tail;
+  SYNTH_SYS = p.synth_sys;
+  SYNTH_USER = p.synth_user;
+  BRIDGE_TOKEN = p.bridge_token || "";
+}
+
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open("magi-vault-db", 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore("keys"); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+async function storeTrustKey(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction("keys","readwrite");
+    tx.objectStore("keys").put(key, "trustkey");
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+
+async function loadTrustKey(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve)=>{
+      const tx = db.transaction("keys","readonly");
+      const getReq = tx.objectStore("keys").get("trustkey");
+      getReq.onsuccess = ()=>resolve(getReq.result || null);
+      getReq.onerror = ()=>resolve(null);
+    });
+  }catch(e){ return null; }
+}
+
+function hideLockscreen(){
+  $("lockscreen").classList.add("hide");
+}
+
+function showLockError(){
+  $("lock-err").textContent = "通行碼錯誤，請重新輸入";
+  $("lock-pass").value = "";
+  $("lock-pass").focus();
+}
+
+const THROTTLE_KEY = "magi_lock_state";
+
+function getLockState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(THROTTLE_KEY) || "{}");
+    return { fails: s.fails||0, until: s.until||0 };
+  }catch(e){ return { fails:0, until:0 }; }
+}
+
+function setLockState(state){
+  try{ localStorage.setItem(THROTTLE_KEY, JSON.stringify(state)); }catch(e){ /* 存不進去不影響節流本身 */ }
+}
+
+function showLockThrottled(remainMs){
+  const sec = Math.max(1, Math.ceil(remainMs/1000));
+  $("lock-err").textContent = `嘗試過多，請等待 ${sec} 秒後再試`;
+  $("lock-pass").value = "";
+}
+
+async function tryUnlock(passphrase){
+  const state = getLockState();
+  if(state.until > Date.now()){
+    showLockThrottled(state.until - Date.now());
+    return;
+  }
+  try{
+    const key = await deriveVaultKey(passphrase, false);
+    const payload = await decryptVaultWithKey(key);
+    applyPayload(payload);
+    if($("lock-trust").checked){
+      const trustKey = await deriveVaultKey(passphrase, false);
+      try{ await storeTrustKey(trustKey); }catch(e){ /* 存不進去不影響本次解鎖 */ }
+    }
+    setLockState({fails:0, until:0});
+    hideLockscreen();
+    boot();
+  }catch(e){
+    const fails = state.fails + 1;
+    let until = 0;
+    if(fails >= 5){
+      const backoff = Math.min(30000 * Math.pow(2, fails-5), 300000);
+      until = Date.now() + backoff;
+    }
+    setLockState({fails, until});
+    if(until > Date.now()){
+      showLockThrottled(until - Date.now());
+    }else{
+      showLockError();
+    }
+  }
+}
+
+$("lock-go").onclick = ()=>{
+  const p = $("lock-pass").value;
+  const state = getLockState();
+  if(state.until > Date.now()){
+    showLockThrottled(state.until - Date.now());
+    return;
+  }
+  if(!p) return;
+  tryUnlock(p);
+};
+$("lock-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") $("lock-go").click(); });
+
+(async function initLock(){
+  const trustKey = await loadTrustKey();
+  if(trustKey){
+    try{
+      const payload = await decryptVaultWithKey(trustKey);
+      applyPayload(payload);
+      hideLockscreen();
+      boot();
+      return;
+    }catch(e){ /* 信任金鑰失效，落回輸入畫面 */ }
+  }
+  $("lock-pass").focus();
+})();
+</script>
+</body>
+</html>
