@@ -119,6 +119,20 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .settings-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
 .hist-item{border-bottom:1px solid #222;padding:8px 12px;font-size:11px;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
 .hist-item b{color:var(--text);font-weight:normal}
+.hist-filter{display:flex;gap:6px;padding:10px 12px;flex-wrap:wrap;border-bottom:1px solid #222}
+.hist-filter input,.hist-filter select{flex:1;min-width:120px;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 8px}
+.hist-filter input:focus,.hist-filter select:focus{outline:none;border-color:var(--orange)}
+.tag.cat-tag{color:var(--dim);border-color:#444;margin-right:4px;white-space:nowrap}
+.tag.cat-major{color:var(--red);border-color:var(--red)}
+.tag.cat-love{color:#ff7bc0;border-color:#ff7bc0}
+.tag.cat-work{color:var(--orange);border-color:var(--orange-dim)}
+.tag.cat-work-restaurant{color:var(--orange);border-color:var(--orange)}
+.tag.cat-work-dev{color:#38bdf8;border-color:#38bdf8}
+.tag.cat-life{color:var(--green);border-color:var(--green)}
+.tag.cat-general{color:var(--dim);border-color:#444}
+.rel-list{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.rel-item{border:1px solid var(--orange-dim);padding:6px 8px;font-size:11px;color:var(--dim);cursor:pointer}
+.rel-item:hover{border-color:var(--orange);color:var(--orange)}
 .review-item{border-bottom:1px solid #222;padding:8px 12px;font-size:11px;color:var(--dim)}
 .review-item .rq{color:var(--text);margin-bottom:4px}
 .review-item .rforecast{color:var(--dim);font-size:10px;line-height:1.6;white-space:pre-line;margin-bottom:8px}
@@ -158,6 +172,8 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   .jsec{font-size:11px;margin-top:16px}
   .joneliner{font-size:15px}
   .jdoc{padding:16px 14px}
+  .hist-filter{flex-direction:column}
+  .hist-filter input,.hist-filter select{min-height:44px}
 }
 @media(min-width:561px){
   textarea,input[type=text]{font-size:14px}
@@ -272,6 +288,20 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <details id="history-box">
   <summary>審議記錄 / LOG</summary>
+  <div class="hist-filter">
+    <input type="text" id="hist-search" placeholder="搜尋議案關鍵字...">
+    <select id="hist-date-filter"><option value="">全部日期</option></select>
+    <select id="hist-cat-filter">
+      <option value="">全部分類</option>
+      <option value="life">生活</option>
+      <option value="work">工作（全部）</option>
+      <option value="work:restaurant">└ 餐廳營運</option>
+      <option value="work:dev">└ 系統開發</option>
+      <option value="love">愛情</option>
+      <option value="major">重大決策</option>
+      <option value="general">一般</option>
+    </select>
+  </div>
   <div id="hist"></div>
 </details>
 
@@ -722,6 +752,7 @@ function saveHistory(no, q, ctx, verdict, votes, jd){
     verdict,
     votes: votes, // 存完整票（reason/concepts/risks/question/bet/suggestion），供點開顯示三方觀點
     jd: jd || null
+    // 分類不存欄位：改由 classifyCase() 從議案內容即時推導，舊記錄也能一起分類
   });
   localStorage.setItem("magi_history", JSON.stringify(h.slice(0,50)));
   renderHistory();
@@ -754,31 +785,146 @@ function renderReview(){
     </div>`).join("") || `<div class="review-item">尚無待驗證案件</div>`;
 }
 
+function hasFullDetail(x){ return x && x.schemaVersion === 3 && Array.isArray(x.votes) && x.votes.length && typeof x.votes[0] === "object" && "reason" in (x.votes[0]||{}); }
+
+// t 是 toLocaleString("zh-TW") 產生的字串（格式固定 "YYYY/M/D ..."），用正則抽日期，
+// 不額外存新欄位、舊紀錄也能篩選。
+function deriveDateStr(tStr){
+  const m = String(tStr||"").match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if(!m) return null;
+  return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+}
+
+// 內容自動分類：從議案文字（q+ctx）用關鍵字判定大分類，工作再細分餐廳營運/系統開發。
+// 純前端啟發式（中文無斷詞，靠關鍵字命中），不存欄位、每次 render 即時推導，舊記錄也一起分類。
+// 判定優先序：重大決策 > 愛情 > 工作(細分) > 生活 > 一般。
+const CAT_RULES = {
+  // 重大決策擺第一：人生轉折/不可逆/大額個人決策，命中就蓋過其他（辭職創業雖沾工作，仍算重大）
+  major: /重大|人生|結婚|離婚|買房|購屋|買車|購車|創業|開店|辭職|辭掉|離職|轉職|跳槽|裸辭|搬家|買地|移民|移居|生小孩|生育|生子|懷孕|退休|畢生|存款全|梭哈|全押|賣房|賣車|頂讓|收掉|結束營業|百萬|千萬/,
+  love: /愛情|感情|對象|女友|男友|女朋友|男朋友|老婆|老公|太太|先生|配偶|伴侶|曖昧|告白|表白|追求|分手|復合|交往|約會|相親|喜歡的人|心儀|另一半|婚姻|求婚|外遇|劈腿|遠距離/,
+  work_restaurant: /餐廳|海灘|沙灘|叫貨|收貨|進貨|備料|排班|班表|廚房|廚師|內場|外場|出餐|菜單|食材|供應商|廠商|包場|訂位|客訴|翻桌|營業額|門市|時薪|工讀|店員|備品|製冰機|咖啡機|冷藏|冷凍|冰箱|烤箱|生財器具|Eats365|iCHEF|POS|NUEIP/i,
+  work_dev: /系統|開發|程式|寫code|coding|app|API|自動化|部署|上線|重構|架構|資料庫|前端|後端|bug|除錯|串接|串聯|整合|GAS|Apps Script|n8n|Supabase|Vercel|life-os|ERP|AppSheet|LINE.*API|ESP32|IoT|Ollama|workflow|腳本|外掛|plugin/i,
+  work: /工作|上班|加班|會議|開會|客戶|報價|接案|專案|案子|老闆|主管|同事|下屬|合約|合作|KPI|績效|升遷|加薪|薪水|勞資|外包|廠商|生意|業務|營運/,
+  life: /健康|運動|健身|減肥|增肌|飲食|吃|喝|睡眠|作息|習慣|旅遊|旅行|出國|玩|娛樂|遊戲|追劇|看書|讀書|學習|上課|課程|進修|理財|存錢|記帳|訂閱|保險|買.*台|搬到|租屋|租房|寵物|家人|朋友聚/
+};
+const CAT_LABEL = {
+  major:"重大決策", love:"愛情", life:"生活", general:"一般",
+  work:"工作", "work:restaurant":"工作·餐廳", "work:dev":"工作·開發"
+};
+
+// 只吃議案 q、不吃補充背景 ctx：決策「主題」都在 q（要不要喝酒＝生活），
+// ctx 常是背景敘述（「連續工作第6天」「氣象署颱風資料庫」）會撞到工作/開發關鍵字造成誤判。
+function classifyCase(q, ctx){
+  const text = String(q||"");
+  if(CAT_RULES.major.test(text)) return { cat:"major", sub:null };
+  if(CAT_RULES.love.test(text)) return { cat:"love", sub:null };
+  if(CAT_RULES.work_restaurant.test(text)) return { cat:"work", sub:"restaurant" };
+  if(CAT_RULES.work_dev.test(text)) return { cat:"work", sub:"dev" };
+  if(CAT_RULES.work.test(text)) return { cat:"work", sub:null };
+  if(CAT_RULES.life.test(text)) return { cat:"life", sub:null };
+  return { cat:"general", sub:null };
+}
+function catKey(cls){ return cls.sub ? `${cls.cat}:${cls.sub}` : cls.cat; }
+function catLabel(cls){ return CAT_LABEL[catKey(cls)] || CAT_LABEL[cls.cat] || "一般"; }
+
+// 關聯性：無中文斷詞可用，退而求其次用 bigram（相鄰兩字）重疊數 + 同分類加分，
+// 兩案共用的詞組越多分數越高，非精確語意比對，僅供快速瀏覽關聯案件用。
+function bigrams(s){
+  const clean = String(s||"").replace(/[\s　-〿＀-￯!-/:-@[-`{-~]/g,"");
+  const set = new Set();
+  for(let i=0;i<clean.length-1;i++) set.add(clean.slice(i,i+2));
+  return set;
+}
+function relatedCases(target, all){
+  const tBig = bigrams(target.q);
+  const tCls = classifyCase(target.q, target.ctx);
+  const tKey = catKey(tCls);
+  return all
+    .filter(x=>x.no!==target.no && hasFullDetail(x))
+    .map(x=>{
+      const xBig = bigrams(x.q);
+      let overlap=0;
+      xBig.forEach(g=>{ if(tBig.has(g)) overlap++; });
+      const union = new Set([...tBig, ...xBig]).size;
+      const jaccard = union ? overlap/union : 0; // 比例而非重疊數，避免「要不要」這類語助詞在短句裡灌水
+      // 同分類加分：細項相同(如都是工作·開發)加最多，僅大分類相同次之，一般類不加分（範圍太廣無意義）
+      const xKey = catKey(classifyCase(x.q, x.ctx));
+      let catBonus = 0, sameCat = false;
+      if(tCls.cat !== "general"){
+        if(xKey === tKey){ catBonus = 0.2; sameCat = true; }
+        else if(xKey.split(":")[0] === tKey.split(":")[0]){ catBonus = 0.1; sameCat = true; }
+      }
+      return { x, score: jaccard + catBonus, jaccard, sameCat };
+    })
+    .filter(r=>r.jaccard>=0.12 || r.sameCat) // 文字要有實質重疊，或同分類，才算相關
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,3)
+    .map(r=>r.x);
+}
+
+let historyCache = [];
+
 function renderHistory(){
   let h;
   try{ h = JSON.parse(localStorage.getItem("magi_history")||"[]"); }
   catch(e){ h = []; }
   if(!Array.isArray(h)) h = [];
-  const hasFullDetail = x => x && x.schemaVersion === 3 && Array.isArray(x.votes) && x.votes.length && typeof x.votes[0] === "object" && "reason" in (x.votes[0]||{});
-  $("hist").innerHTML = h.map((x,i)=>{
+  historyCache = h;
+
+  const dateSel = $("hist-date-filter");
+  if(dateSel){
+    const curDate = dateSel.value;
+    const dates = Array.from(new Set(h.map(x=>deriveDateStr(x.t)).filter(Boolean))).sort().reverse();
+    dateSel.innerHTML = `<option value="">全部日期</option>` + dates.map(d=>`<option value="${d}">${d}</option>`).join("");
+    dateSel.value = dates.includes(curDate) ? curDate : "";
+  }
+
+  applyHistoryFilter();
+}
+
+function applyHistoryFilter(){
+  const h = historyCache;
+  const kw = (($("hist-search")&&$("hist-search").value)||"").trim().toLowerCase();
+  const dateF = ($("hist-date-filter")&&$("hist-date-filter").value) || "";
+  const catF = ($("hist-cat-filter")&&$("hist-cat-filter").value) || "";
+
+  const filtered = h.filter(x=>{
+    if(dateF && deriveDateStr(x.t) !== dateF) return false;
+    if(catF){
+      const cls = classifyCase(x.q, x.ctx);
+      const key = catKey(cls); // "work" 或 "work:dev" 等
+      if(catF === "work"){ if(cls.cat !== "work") return false; } // 工作（全部）含細項
+      else if(key !== catF) return false; // 精確比對大分類或細項
+    }
+    if(kw){
+      const hay = `#${String(x.no||"").padStart(3,"0")} ${x.q||""} ${x.ctx||""} ${x.verdict||""}`.toLowerCase();
+      if(!hay.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  $("hist").innerHTML = filtered.map(x=>{
+    const _cls = classifyCase(x.q, x.ctx);
+    const _subCls = _cls.sub ? ` cat-${_cls.cat}-${_cls.sub}` : "";
+    const catTag = `<span class="tag cat-tag cat-${_cls.cat}${_subCls}">${esc(catLabel(_cls))}</span>`;
     if(!hasFullDetail(x)){
       const voteStr = (x && Array.isArray(x.votes)) ? x.votes.map(v=>v.vote).join("/") : "";
-      return `<div class="hist-item"><span>#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span></div>`;
+      return `<div class="hist-item"><span>${catTag}#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span></div>`;
     }
     const voteStr = x.votes.map(v=>v.vote).join("/");
-    return `<details class="hist-entry">
-      <summary><span>#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span></summary>
-      <div class="body" id="hist-body-${i}"></div>
+    return `<details class="hist-entry" id="hist-entry-${x.no}">
+      <summary><span>${catTag}#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span></summary>
+      <div class="body" id="hist-body-${x.no}"></div>
     </details>`;
-  }).join("") || `<div class="hist-item">尚無記錄</div>`;
+  }).join("") || `<div class="hist-item">${h.length?"沒有符合條件的記錄":"尚無記錄"}</div>`;
 
-  h.forEach((x,i)=>{
+  filtered.forEach(x=>{
     if(!hasFullDetail(x)) return;
-    const entry = $("hist").children[i];
-    if(!entry || entry.tagName !== "DETAILS") return;
+    const entry = document.getElementById(`hist-entry-${x.no}`);
+    if(!entry) return;
     entry.addEventListener("toggle", function once(e){
       if(!e.target.open) return;
-      const body = document.getElementById(`hist-body-${i}`);
+      const body = document.getElementById(`hist-body-${x.no}`);
       let html = "";
       if(x.q) html += `<div class="sec">完整議案</div><div class="jbody" style="white-space:pre-line">${esc(x.q)}</div>`;
       if(x.ctx) html += `<div class="sec">補充背景</div><div class="jbody" style="white-space:pre-line">${esc(x.ctx)}</div>`;
@@ -788,10 +934,27 @@ function renderHistory(){
         html += `<details>${voteCardHTML(u.name, v)}</details>`;
       });
       if(x.jd) html += `<div class="jdoc show" style="margin-top:10px">${judgmentDocHTML(x.jd)}</div>`;
+      const rel = relatedCases(x, historyCache);
+      if(rel.length){
+        html += `<div class="sec">相關案件</div><div class="rel-list">` + rel.map(r=>`<div class="rel-item" onclick="jumpToCase(${r.no})">#${String(r.no).padStart(3,"0")} ${esc(r.q).slice(0,40)}</div>`).join("") + `</div>`;
+      }
       body.innerHTML = html;
       entry.removeEventListener("toggle", once);
     });
   });
+}
+
+function jumpToCase(no){
+  if($("hist-search")) $("hist-search").value = "";
+  if($("hist-date-filter")) $("hist-date-filter").value = "";
+  if($("hist-cat-filter")) $("hist-cat-filter").value = "";
+  applyHistoryFilter();
+  const box = $("history-box");
+  if(box && !box.open) box.open = true;
+  const el = document.getElementById(`hist-entry-${no}`);
+  if(!el) return;
+  el.open = true;
+  requestAnimationFrame(()=> el.scrollIntoView({behavior:"smooth", block:"start"}));
 }
 
 async function run(){
@@ -970,6 +1133,9 @@ function boot(){
   $("eng-gemini").onclick = ()=>setEngine("gemini");
   $("eng-claude").onclick = ()=>setEngine("claude");
   setEngine(localStorage.getItem("magi_engine") || "ollama");
+  $("hist-search").oninput = applyHistoryFilter;
+  $("hist-date-filter").onchange = applyHistoryFilter;
+  $("hist-cat-filter").onchange = applyHistoryFilter;
 
   clog("MAGI SYSTEM 起動 — 第7世代有機電腦 · 人格移植OS");
   renderHistory();
