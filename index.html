@@ -182,6 +182,20 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   .mode-row{flex-direction:column}
   .mode-btn{min-width:0;flex-basis:auto}
 }
+
+.share-btn{background:none;border:1px solid var(--orange-dim);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:28px}
+.share-btn:hover{border-color:var(--orange);color:var(--orange)}
+.share-btn:active{transform:scale(.97);opacity:.85}
+.share-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom));overflow-y:auto}
+.share-overlay.show{display:flex;flex-direction:column;align-items:center;gap:14px}
+.share-card-wrap{border:1px solid var(--orange-dim);background:var(--panel);padding:8px;max-width:340px;width:100%}
+.share-card-wrap canvas{width:100%;height:auto;display:block;aspect-ratio:9/16;background:#050508}
+.share-actions{display:flex;flex-direction:column;gap:8px;max-width:340px;width:100%}
+.share-actions button{background:none;border:1px solid var(--orange);color:var(--orange);font-family:var(--mono);font-size:12px;letter-spacing:2px;padding:12px;cursor:pointer;transition:transform .08s ease,opacity .08s ease;min-height:44px}
+.share-actions button:active{transform:scale(.97);opacity:.85}
+.share-actions button.primary{background:var(--orange);color:#000;font-weight:bold}
+.share-actions #share-close{border-color:#444;color:var(--dim)}
+.share-toast{font-size:11px;color:var(--green);text-align:center;min-height:16px}
 </style>
 </head>
 <body>
@@ -306,6 +320,17 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </details>
 
 <footer>NERV — GOD'S IN HIS HEAVEN. ALL'S RIGHT WITH THE WORLD.</footer>
+</div>
+
+<div class="share-overlay" id="share-overlay">
+  <div class="share-card-wrap"><canvas id="share-canvas"></canvas></div>
+  <div class="share-actions">
+    <button class="primary" id="share-dl">下載 9:16 圖片</button>
+    <button id="share-native" style="display:none">分享圖片…</button>
+    <button id="share-flex">複製 LINE Flex JSON</button>
+    <div class="share-toast" id="share-toast"></div>
+    <button id="share-close">關閉</button>
+  </div>
 </div>
 
 <script>
@@ -909,11 +934,11 @@ function applyHistoryFilter(){
     const catTag = `<span class="tag cat-tag cat-${_cls.cat}${_subCls}">${esc(catLabel(_cls))}</span>`;
     if(!hasFullDetail(x)){
       const voteStr = (x && Array.isArray(x.votes)) ? x.votes.map(v=>v.vote).join("/") : "";
-      return `<div class="hist-item"><span>${catTag}#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span></div>`;
+      return `<div class="hist-item"><span>${catTag}#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x&&x.no||0})">分享</button></div>`;
     }
     const voteStr = x.votes.map(v=>v.vote).join("/");
     return `<details class="hist-entry" id="hist-entry-${x.no}">
-      <summary><span>${catTag}#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span></summary>
+      <summary><span>${catTag}#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x.no})">分享</button></summary>
       <div class="body" id="hist-body-${x.no}"></div>
     </details>`;
   }).join("") || `<div class="hist-item">${h.length?"沒有符合條件的記錄":"尚無記錄"}</div>`;
@@ -956,6 +981,355 @@ function jumpToCase(no){
   el.open = true;
   requestAnimationFrame(()=> el.scrollIntoView({behavior:"smooth", block:"start"}));
 }
+
+// ── 分享：把一筆案件畫成 9:16 圖片卡，或轉成 LINE Flex JSON ──
+const VERDICT_COLOR = { "可決":"#33ff77", "否決":"#ff3344", "再審議":"#ffcc33" };
+const CAT_COLOR_HEX = {
+  major:"#ff3344", love:"#ff7bc0", life:"#33ff77", general:"#7a7468",
+  work:"#ff7b00", "work:restaurant":"#ff7b00", "work:dev":"#38bdf8"
+};
+function catColorHex(cls){ return CAT_COLOR_HEX[catKey(cls)] || CAT_COLOR_HEX[cls.cat] || "#7a7468"; }
+function truncate(s, n){ s = String(s??""); return s.length>n ? s.slice(0,n)+"…" : s; }
+function hexAlpha(hex, a){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+// canvas 無斷詞可用，逐字量寬度換行；文字裡原有的 \n（例如 reason 的 pre-line）也保留斷行。
+function wrapCanvasText(ctx, text, maxWidth){
+  const lines = [];
+  String(text||"").split("\n").forEach(raw=>{
+    let cur = "";
+    for(const ch of raw){
+      const test = cur + ch;
+      if(cur && ctx.measureText(test).width > maxWidth){ lines.push(cur); cur = ch; }
+      else cur = test;
+    }
+    lines.push(cur);
+  });
+  return lines;
+}
+// 呼應站內 clip-path 切角視覺語言（見 CSS .unit/.verdict 等），畫一個右上/左下切角的框
+function notchedRect(ctx, x, y, w, h, n){
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+w-n, y);
+  ctx.lineTo(x+w, y+n);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x+n, y+h);
+  ctx.lineTo(x, y+h-n);
+  ctx.closePath();
+}
+
+// 畫案件本體（不含外框/背景/頁尾，兩者都要吃最終卡片高度 H，要等內容量完才知道）。
+// 回傳畫完之後的 y 游標，用來讓 drawShareCard 算出這張卡實際需要多高——
+// 判決書（論證/反方擊破/預測/絆線/金句）長度不固定，硬塞死 1920px 會被裁掉，所以卡片改成
+// 「最短 9:16、內容多就往下長」，而不是死板固定比例。
+function drawShareBody(ctx, x, W){
+  const cls = classifyCase(x.q, x.ctx);
+  const catCol = catColorHex(cls);
+  const vCol = VERDICT_COLOR[x.verdict] || "#7a7468";
+  const fSans = `"PingFang TC","Heiti TC","Microsoft JhengHei",-apple-system,sans-serif`;
+  const fMono = `"SF Mono","JetBrains Mono","Courier New",monospace`;
+
+  let y = 130;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#ff7b00";
+  ctx.font = `bold 56px ${fMono}`;
+  ctx.fillText("MAGI", 90, y);
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `24px ${fMono}`;
+  ctx.fillText("三賢人決策支援系統", 90, y+38);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#ff7b00";
+  ctx.font = `bold 44px ${fMono}`;
+  ctx.fillText(`#${String(x.no).padStart(3,"0")}`, W-90, y);
+  ctx.textAlign = "left";
+
+  y += 95;
+  const catLbl = catLabel(cls);
+  ctx.font = `26px ${fSans}`;
+  const catW = ctx.measureText(catLbl).width + 40;
+  ctx.strokeStyle = catCol;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(90, y, catW, 46);
+  ctx.fillStyle = catCol;
+  ctx.fillText(catLbl, 90+20, y+32);
+
+  y += 90;
+  ctx.strokeStyle = "#2a2a33";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W-90, y); ctx.stroke();
+
+  y += 66;
+  ctx.fillStyle = "#e8e0d0";
+  ctx.font = `40px ${fSans}`;
+  wrapCanvasText(ctx, truncate(x.q, 200), W-180).slice(0, 6).forEach(line=>{ ctx.fillText(line, 90, y); y += 56; });
+
+  y += 26;
+  const vBoxH = 200;
+  ctx.fillStyle = hexAlpha(vCol, 0.08);
+  notchedRect(ctx, 90, y, W-180, vBoxH, 24); ctx.fill();
+  ctx.strokeStyle = vCol; ctx.lineWidth = 4;
+  notchedRect(ctx, 90, y, W-180, vBoxH, 24); ctx.stroke();
+  ctx.textAlign = "center";
+  ctx.fillStyle = vCol;
+  ctx.font = `bold 100px ${fSans}`;
+  ctx.fillText(x.verdict || "—", W/2, y+126);
+  ctx.textAlign = "left";
+  y += vBoxH + 50;
+
+  const jd = x.jd;
+  if(jd){
+    if(jd.ruling){
+      ctx.fillStyle = "#ff7b00";
+      ctx.font = `bold 34px ${fSans}`;
+      wrapCanvasText(ctx, jd.ruling, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 48; });
+      y += 6;
+      ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W-90, y); ctx.stroke();
+      y += 42;
+    }
+    const section = (label, text)=>{
+      if(!text) return;
+      ctx.fillStyle = "#7a7468";
+      ctx.font = `22px ${fMono}`;
+      ctx.fillText(label, 90, y);
+      y += 42;
+      ctx.fillStyle = "#e8e0d0";
+      ctx.font = `28px ${fSans}`;
+      wrapCanvasText(ctx, text, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 40; });
+      y += 32;
+    };
+    section("論證", jd.argument);
+    section("反方最強論點與擊破", jd.counter);
+    section("六個月預測（可證偽）", jd.forecast);
+    if(jd.conditions && jd.conditions.length){
+      ctx.fillStyle = "#7a7468";
+      ctx.font = `22px ${fMono}`;
+      ctx.fillText("執行條件與撤退絆線", 90, y);
+      y += 42;
+      ctx.fillStyle = "#e8e0d0";
+      ctx.font = `28px ${fSans}`;
+      jd.conditions.forEach(c=>{
+        wrapCanvasText(ctx, "· " + c, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 40; });
+      });
+      y += 32;
+    }
+    if(jd.oneliner){
+      wrapCanvasText(ctx, `「${jd.oneliner}」`, W-230).forEach(line=>{
+        ctx.fillStyle = "#ff7b00";
+        ctx.fillRect(90, y-30, 6, 42);
+        ctx.fillStyle = "#ffcc33";
+        ctx.font = `30px ${fSans}`;
+        ctx.fillText(line, 116, y);
+        y += 46;
+      });
+      y += 28;
+    }
+  }
+
+  y += 6;
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `22px ${fMono}`;
+  ctx.fillText("三方表決 / VOTES", 90, y);
+  y += 20;
+  ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W-90, y); ctx.stroke();
+  y += 54;
+
+  const names = ["MELCHIOR·1","BALTHASAR·2","CASPER·3"];
+  (x.votes||[]).forEach((v,i)=>{
+    ctx.fillStyle = "#ff7b00";
+    ctx.font = `bold 30px ${fMono}`;
+    ctx.fillText(names[i] || `UNIT${i+1}`, 90, y);
+
+    const vc = VERDICT_COLOR[v.vote] || "#7a7468";
+    ctx.font = `28px ${fSans}`;
+    const tagW = ctx.measureText(v.vote||"").width + 36;
+    const tagX = 470;
+    ctx.strokeStyle = vc; ctx.lineWidth = 2;
+    ctx.strokeRect(tagX, y-36, tagW, 46);
+    ctx.fillStyle = vc;
+    ctx.fillText(v.vote||"", tagX+18, y);
+
+    ctx.fillStyle = "#7a7468";
+    ctx.font = `26px ${fMono}`;
+    ctx.fillText(v.confidence!=null ? `${v.confidence}%` : "—", tagX+tagW+24, y);
+
+    y += 76;
+  });
+
+  return y;
+}
+
+function drawShareCard(canvas, x){
+  const W = 1080;
+  const fMono = `"SF Mono","JetBrains Mono","Courier New",monospace`;
+
+  // 量測 pass：畫在 1x1 的拋棄式 canvas 上，只為了拿最終 y 游標算卡片要多高，
+  // 不會真的顯示出來（canvas 允許畫到可視範圍外，不會噴錯，只是量不到像素也沒差）。
+  const scratch = document.createElement("canvas");
+  scratch.width = 1; scratch.height = 1;
+  const contentEndY = drawShareBody(scratch.getContext("2d"), x, W);
+  const H = Math.max(1920, Math.ceil(contentEndY) + 210);
+
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#a34f00";
+  ctx.lineWidth = 3;
+  notchedRect(ctx, 40, 40, W-80, H-80, 28);
+  ctx.stroke();
+
+  drawShareBody(ctx, x, W);
+
+  ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(90, H-160); ctx.lineTo(W-90, H-160); ctx.stroke();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `24px ${fMono}`;
+  ctx.fillText(x.t||"", 90, H-108);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#a34f00";
+  ctx.fillText("MAGI SYSTEM", W-90, H-108);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
+// LINE Flex 規格陷阱（見專案記憶）：backgroundColor/cornerRadius/paddingAll 只有 box 元件吃，
+// text 元件不支援，色塊一律用小 box 包 text。這裡只產生 JSON 給阿桑自己複製貼去送出，
+// 不在前端內嵌任何 LINE token（避免公開 GitHub Pages 版本金鑰外洩）。
+
+// 判決書全文（裁定/論證/反方擊破/預測/絆線/金句）拆成 flex content 陣列，跟 canvas 版 drawShareBody
+// 是同一份判決書資料、同樣的段落順序，只是換一種排版語彙（box+text）呈現。
+function buildJudgmentFlexContents(jd){
+  if(!jd) return [];
+  const blocks = [];
+  if(jd.ruling) blocks.push({ type:"text", text: jd.ruling, wrap:true, weight:"bold", size:"md", color:"#ff7b00" });
+  const section = (label, text)=>{
+    if(!text) return;
+    blocks.push({ type:"text", text: label, size:"xs", color:"#7a7468", margin:"md" });
+    blocks.push({ type:"text", text: text, wrap:true, size:"sm", color:"#e8e0d0", margin:"xs" });
+  };
+  section("論證", jd.argument);
+  section("反方最強論點與擊破", jd.counter);
+  section("六個月預測（可證偽）", jd.forecast);
+  if(jd.conditions && jd.conditions.length){
+    blocks.push({ type:"text", text:"執行條件與撤退絆線", size:"xs", color:"#7a7468", margin:"md" });
+    jd.conditions.forEach(c=>{
+      blocks.push({ type:"text", text:"· "+c, wrap:true, size:"sm", color:"#e8e0d0", margin:"xs" });
+    });
+  }
+  if(jd.oneliner){
+    blocks.push({
+      type:"box", layout:"vertical", margin:"md", paddingAll:"10px", borderColor:"#ff7b00", borderWidth:"medium", cornerRadius:"4px",
+      contents:[{ type:"text", text:`「${jd.oneliner}」`, wrap:true, size:"sm", color:"#ffcc33" }]
+    });
+  }
+  return blocks;
+}
+function buildFlexBubble(x){
+  const cls = classifyCase(x.q, x.ctx);
+  const vColor = VERDICT_COLOR[x.verdict] || "#7a7468";
+  const catColor = catColorHex(cls);
+  const names = ["MELCHIOR·1","BALTHASAR·2","CASPER·3"];
+  const voteRows = (x.votes||[]).map((v,i)=>({
+    type:"box", layout:"horizontal", margin:"sm", alignItems:"center",
+    contents:[
+      { type:"text", text: names[i]||`UNIT${i+1}`, size:"sm", color:"#ff7b00", flex:5 },
+      { type:"box", layout:"vertical", flex:2, backgroundColor: vColor, cornerRadius:"4px", paddingAll:"3px",
+        contents:[{ type:"text", text: v.vote||"—", size:"xs", color:"#050508", align:"center", weight:"bold" }] },
+      { type:"text", text:`${v.confidence!=null?v.confidence:"—"}%`, size:"sm", color:"#7a7468", flex:2, align:"end" }
+    ]
+  }));
+  return {
+    type:"bubble",
+    size:"giga",
+    header:{
+      type:"box", layout:"vertical", backgroundColor:"#050508", paddingAll:"16px", spacing:"sm",
+      contents:[
+        { type:"text", text:`MAGI #${String(x.no).padStart(3,"0")}`, color:"#ff7b00", weight:"bold", size:"md" },
+        { type:"box", layout:"vertical", backgroundColor: catColor, cornerRadius:"4px", paddingAll:"3px", width:"84px",
+          contents:[{ type:"text", text: catLabel(cls), size:"xxs", color:"#050508", align:"center" }] }
+      ]
+    },
+    body:{
+      type:"box", layout:"vertical", backgroundColor:"#0d0d14", paddingAll:"16px", spacing:"md",
+      contents:[
+        { type:"text", text: x.q||"", wrap:true, weight:"bold", color:"#e8e0d0", size:"md" },
+        { type:"box", layout:"vertical", backgroundColor: vColor, cornerRadius:"6px", paddingAll:"10px",
+          contents:[{ type:"text", text: x.verdict||"—", weight:"bold", size:"xl", align:"center", color:"#050508" }] },
+        { type:"separator", color:"#2a2a33" },
+        ...buildJudgmentFlexContents(x.jd),
+        { type:"separator", color:"#2a2a33" },
+        ...voteRows
+      ]
+    },
+    footer:{
+      type:"box", layout:"horizontal", backgroundColor:"#050508", paddingAll:"12px",
+      contents:[
+        { type:"text", text: x.t||"", size:"xs", color:"#7a7468" },
+        { type:"text", text:"MAGI SYSTEM", size:"xs", color:"#a34f00", align:"end" }
+      ]
+    }
+  };
+}
+function buildFlexMessage(x){
+  return { type:"flex", altText: `MAGI #${String(x.no).padStart(3,"0")} ${truncate(x.q,40)} → ${x.verdict}`, contents: buildFlexBubble(x) };
+}
+
+let shareTarget = null;
+function shareCase(no){
+  const x = historyCache.find(c=>c && c.no===no);
+  if(!x){ return; }
+  shareTarget = x;
+  const canvas = $("share-canvas");
+  drawShareCard(canvas, x);
+  $("share-toast").textContent = "";
+  $("share-overlay").classList.add("show");
+  $("share-native").style.display = (navigator.canShare && navigator.share) ? "block" : "none";
+}
+function closeShareModal(){
+  $("share-overlay").classList.remove("show");
+  shareTarget = null;
+}
+$("share-close").onclick = closeShareModal;
+$("share-overlay").addEventListener("click", e=>{ if(e.target.id === "share-overlay") closeShareModal(); });
+$("share-dl").onclick = ()=>{
+  if(!shareTarget) return;
+  $("share-canvas").toBlob(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `MAGI-案${String(shareTarget.no).padStart(3,"0")}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, "image/png");
+};
+$("share-native").onclick = ()=>{
+  if(!shareTarget) return;
+  $("share-canvas").toBlob(async blob=>{
+    const file = new File([blob], `MAGI-案${String(shareTarget.no).padStart(3,"0")}.png`, { type:"image/png" });
+    try{
+      if(navigator.canShare && !navigator.canShare({ files:[file] })){ return; }
+      await navigator.share({ files:[file], title:"MAGI 判決分享", text: truncate(shareTarget.q, 60) });
+    }catch(e){ /* 使用者取消分享，不算錯誤 */ }
+  }, "image/png");
+};
+$("share-flex").onclick = async ()=>{
+  if(!shareTarget) return;
+  const json = JSON.stringify(buildFlexMessage(shareTarget), null, 2);
+  try{
+    await navigator.clipboard.writeText(json);
+    $("share-toast").textContent = "已複製 Flex JSON";
+  }catch(e){
+    $("share-toast").textContent = "複製失敗：" + e.message;
+  }
+};
 
 async function run(){
   const q = $("q").value.trim();
