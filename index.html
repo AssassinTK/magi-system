@@ -186,6 +186,11 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 .share-btn{background:none;border:1px solid var(--orange-dim);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:28px}
 .share-btn:hover{border-color:var(--orange);color:var(--orange)}
 .share-btn:active{transform:scale(.97);opacity:.85}
+.archive-btn{background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:28px}
+.archive-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.archive-btn:active{transform:scale(.97);opacity:.85}
+.hist-entry.archived{opacity:.55}
+.tag.archived-tag{color:var(--dim);border-color:#444}
 .share-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom));overflow-y:auto}
 .share-overlay.show{display:flex;flex-direction:column;align-items:center;gap:14px}
 .share-card-wrap{border:1px solid var(--orange-dim);background:var(--panel);padding:8px;max-width:340px;width:100%}
@@ -315,6 +320,9 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
       <option value="major">重大決策</option>
       <option value="general">一般</option>
     </select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);flex:0 0 auto;white-space:nowrap">
+      <input type="checkbox" id="hist-show-archived" style="width:auto;flex:none">顯示已封存
+    </label>
   </div>
   <div id="hist"></div>
 </details>
@@ -912,8 +920,10 @@ function applyHistoryFilter(){
   const kw = (($("hist-search")&&$("hist-search").value)||"").trim().toLowerCase();
   const dateF = ($("hist-date-filter")&&$("hist-date-filter").value) || "";
   const catF = ($("hist-cat-filter")&&$("hist-cat-filter").value) || "";
+  const showArchived = ($("hist-show-archived")&&$("hist-show-archived").checked) || false;
 
   const filtered = h.filter(x=>{
+    if(!showArchived && isArchived(x && x.no)) return false;
     if(dateF && deriveDateStr(x.t) !== dateF) return false;
     if(catF){
       const cls = classifyCase(x.q, x.ctx);
@@ -932,13 +942,18 @@ function applyHistoryFilter(){
     const _cls = classifyCase(x.q, x.ctx);
     const _subCls = _cls.sub ? ` cat-${_cls.cat}-${_cls.sub}` : "";
     const catTag = `<span class="tag cat-tag cat-${_cls.cat}${_subCls}">${esc(catLabel(_cls))}</span>`;
+    const archived = isArchived(x && x.no);
+    const archTag = archived ? `<span class="tag archived-tag">已封存</span>` : "";
+    const archBtn = archived
+      ? `<button class="archive-btn" onclick="event.preventDefault();event.stopPropagation();unarchiveCase(${x&&x.no||0})">取消封存</button>`
+      : `<button class="archive-btn" onclick="event.preventDefault();event.stopPropagation();archiveCase(${x&&x.no||0})">封存</button>`;
     if(!hasFullDetail(x)){
       const voteStr = (x && Array.isArray(x.votes)) ? x.votes.map(v=>v.vote).join("/") : "";
-      return `<div class="hist-item"><span>${catTag}#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x&&x.no||0})">分享</button></div>`;
+      return `<div class="hist-item"><span>${catTag}${archTag}#${String(x&&x.no||"?").padStart(3,"0")} <b>${esc(x&&x.q||"（舊格式）").slice(0,60)}</b></span><span style="color:var(--dim)">${voteStr?esc(voteStr)+" → "+esc(x.verdict||"")+"（舊版格式，僅存票向，無完整觀點）":"舊版格式紀錄，無法完整顯示"}<br>${esc(x&&x.t||"")}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x&&x.no||0})">分享</button>${archBtn}</div>`;
     }
     const voteStr = x.votes.map(v=>v.vote).join("/");
-    return `<details class="hist-entry" id="hist-entry-${x.no}">
-      <summary><span>${catTag}#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x.no})">分享</button></summary>
+    return `<details class="hist-entry${archived?" archived":""}" id="hist-entry-${x.no}">
+      <summary><span>${catTag}${archTag}#${String(x.no).padStart(3,"0")} <b>${esc(x.q).slice(0,60)}</b></span><span>${esc(voteStr)} → ${esc(x.verdict)}${x.jd?" · 判決書":""}<br>${esc(x.t)}</span><button class="share-btn" onclick="event.preventDefault();event.stopPropagation();shareCase(${x.no})">分享</button>${archBtn}</summary>
       <div class="body" id="hist-body-${x.no}"></div>
     </details>`;
   }).join("") || `<div class="hist-item">${h.length?"沒有符合條件的記錄":"尚無記錄"}</div>`;
@@ -973,6 +988,7 @@ function jumpToCase(no){
   if($("hist-search")) $("hist-search").value = "";
   if($("hist-date-filter")) $("hist-date-filter").value = "";
   if($("hist-cat-filter")) $("hist-cat-filter").value = "";
+  if($("hist-show-archived") && isArchived(no)) $("hist-show-archived").checked = true; // 目標本身已封存才看得到
   applyHistoryFilter();
   const box = $("history-box");
   if(box && !box.open) box.open = true;
@@ -1283,6 +1299,28 @@ function buildFlexMessage(x){
   return { type:"flex", altText: `MAGI #${String(x.no).padStart(3,"0")} ${truncate(x.q,40)} → ${x.verdict}`, contents: buildFlexBubble(x) };
 }
 
+// 封存／取消封存——完全不動 magi_history / magi_cases_full 的內容，也不碰 caseNo 流水號，
+// 只是本機記一份「已封存案號」清單，預設列表把它濾掉；資料本身還在，隨時可取消封存還原。
+// 故意不放進雲端 Supabase（那邊沒有這個欄位），封存狀態是純本機的顯示層開關，跨裝置各自獨立。
+function loadArchivedNos(){
+  try{ const a = JSON.parse(localStorage.getItem("magi_archived_nos")||"[]"); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function isArchived(no){ return loadArchivedNos().includes(no); }
+function archiveCase(no){
+  const nos = loadArchivedNos();
+  if(!nos.includes(no)) nos.push(no);
+  localStorage.setItem("magi_archived_nos", JSON.stringify(nos));
+  renderHistory();
+  clog(`已封存案號 #${String(no).padStart(3,"0")}（資料保留，隨時可取消封存）`, "ln-ok");
+}
+function unarchiveCase(no){
+  const nos = loadArchivedNos().filter(n=>n!==no);
+  localStorage.setItem("magi_archived_nos", JSON.stringify(nos));
+  renderHistory();
+  clog(`已取消封存案號 #${String(no).padStart(3,"0")}`, "ln-ok");
+}
+
 let shareTarget = null;
 function shareCase(no){
   const x = historyCache.find(c=>c && c.no===no);
@@ -1510,6 +1548,7 @@ function boot(){
   $("hist-search").oninput = applyHistoryFilter;
   $("hist-date-filter").onchange = applyHistoryFilter;
   $("hist-cat-filter").onchange = applyHistoryFilter;
+  $("hist-show-archived").onchange = applyHistoryFilter;
 
   clog("MAGI SYSTEM 起動 — 第7世代有機電腦 · 人格移植OS");
   renderHistory();
