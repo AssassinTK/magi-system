@@ -166,6 +166,8 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .board-row .bscore{color:var(--cyan)}
 .board-row .bnote{color:var(--dim);font-size:10px;width:100%}
 .board-hint{padding:8px 12px;font-size:10px;color:var(--dim);line-height:1.7}
+.board-sec{border-top:1px solid #222;margin-top:6px;padding:10px 12px 2px;font-size:11px;color:var(--cyan);letter-spacing:1px}
+.board-sec span{color:var(--dim);font-size:10px;letter-spacing:0}
 
 .hist-item{border-bottom:1px solid #222;padding:0}
 .hist-item summary{font-size:11px;color:var(--dim)}
@@ -334,13 +336,9 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <details id="review-box">
   <summary>到期回顧 · 對答案 / GRADE <span class="tag t-yellow" id="review-count" style="display:none"></span></summary>
-  <div class="board-hint">預測要對過答案才算數。判定「發生／未發生」後，系統會替每個引擎算 Brier 分數（越低越準）。</div>
+  <div class="board-hint">預測要對過答案才算數。判定「發生／未發生」後，系統會替每顆腦算 Brier 分數（越低越準）。</div>
   <div id="review-list"></div>
-</details>
-
-<details id="board-box">
-  <summary>引擎校準計分板 / CALIBRATION</summary>
-  <div class="board-hint">Brier 分數 =（預測機率 − 實際結果）²，0 最準、0.25 = 跟丟銅板一樣、1 最離譜。累積夠多筆就知道哪個引擎過度自信。</div>
+  <div class="board-sec">三腦校準計分板 / CALIBRATION　<span>Brier =（預測機率−實際結果）²，0 最準、0.25 = 丟銅板、1 最離譜</span></div>
   <div id="board"></div>
 </details>
 
@@ -978,7 +976,7 @@ function renderReview(){
 function renderBoard(){
   const board = $("board");
   const resolved = loadPreds().filter(p=>p.scores);
-  if(!resolved.length){ board.innerHTML = `<div class="board-hint">還沒有已判定的預測。累積答案後，這裡會排出三腦的準度排行（舊的引擎維度記錄也會列出）。</div>`; return; }
+  if(!resolved.length){ board.innerHTML = `<div class="board-hint">尚無已判定的預測，判定後這裡會累積三腦準度排行。</div>`; return; }
   const stats = {};
   resolved.forEach(p=>{
     Object.entries(p.scores).forEach(([k,s])=>{
