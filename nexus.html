@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050508">
+<title>MAGI NEXUS — 風險×決策</title>
+<style>
+:root{
+  --bg:#050508;
+  --panel:#0d0d14;
+  --orange:#ff7b00;
+  --orange-dim:#a34f00;
+  --green:#33ff77;
+  --red:#ff3344;
+  --yellow:#ffcc33;
+  --cyan:#38bdf8;
+  --gold:#d4b46a;
+  --text:#e8e0d0;
+  --dim:#7a7468;
+  --mono:"SF Mono","JetBrains Mono","Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(212,180,106,.012) 3px,rgba(212,180,106,.012) 4px)}
+.wrap{max-width:860px;margin:0 auto}
+header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+header h1{font-size:18px;color:var(--gold);letter-spacing:4px}
+header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
+.hstat{font-size:10px;color:var(--dim);text-align:right;line-height:1.6;letter-spacing:1px}
+.tabs{display:flex;gap:8px;margin:14px 0 0}
+.tabs a{flex:1;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:2px;padding:10px;min-height:20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
+.tabs a.on{border-color:var(--gold);color:var(--gold);background:rgba(212,180,106,.08)}
+.tabs a:not(.on):hover{border-color:var(--orange-dim);color:var(--orange)}
+
+.expo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.expo{border:2px solid var(--orange-dim);background:var(--panel);padding:12px;text-align:center;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.expo .elab{font-size:10px;color:var(--dim);letter-spacing:2px}
+.expo .eval{font-size:22px;color:var(--gold);margin-top:6px;letter-spacing:1px;word-break:break-all}
+.expo .eval small{font-size:10px;color:var(--dim);letter-spacing:0}
+.expo .esub{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.5}
+
+.queue-box{border:1px solid var(--orange-dim);background:var(--panel);padding:14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.queue-box .qtitle{font-size:11px;color:var(--gold);letter-spacing:2px;margin-bottom:4px}
+.queue-box .qhint{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:10px}
+.qitem{border:1px solid #2a2a33;background:#0a0a10;padding:10px 12px;margin-bottom:8px}
+.qitem .qq{font-size:13px;color:var(--text);line-height:1.7}
+.qitem .qnums{margin-top:6px;font-size:11px;color:var(--dim);line-height:1.8;display:flex;gap:14px;flex-wrap:wrap}
+.qitem .qnums b{color:var(--gold);font-weight:normal}
+.qitem .qnums .qp{color:var(--cyan)}
+.qitem .qact{margin-top:6px;font-size:11.5px;line-height:1.8;color:var(--yellow)}
+.qitem .qact .lv{color:var(--cyan)}
+.qitem .qmeta{margin-top:4px;font-size:10px;color:var(--dim)}
+.qitem .overdue{color:var(--red)}
+.rank{display:inline-block;min-width:20px;color:var(--gold)}
+
+.tag{font-size:11px;padding:1px 8px;border:1px solid;white-space:nowrap}
+.tag.cat-tag{color:var(--dim);border-color:#444;margin-right:6px}
+.tag.cat-major{color:var(--red);border-color:var(--red)}
+.tag.cat-love{color:#ff7bc0;border-color:#ff7bc0}
+.tag.cat-work{color:var(--orange);border-color:var(--orange-dim)}
+.tag.cat-work-restaurant{color:var(--orange);border-color:var(--orange)}
+.tag.cat-work-dev{color:#38bdf8;border-color:#38bdf8}
+.tag.cat-life{color:var(--green);border-color:var(--green)}
+.tag.cat-general{color:var(--dim);border-color:#444}
+.tag.t-judge-yes{color:var(--cyan);border-color:var(--cyan)}
+.tag.t-judge-no{color:var(--orange);border-color:var(--orange)}
+.tag.t-judge-hold{color:var(--yellow);border-color:var(--yellow)}
+
+.matrix-box{border:1px solid var(--orange-dim);background:var(--panel);padding:14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.matrix-box .mtitle{font-size:11px;color:var(--gold);letter-spacing:2px;margin-bottom:10px}
+.matrix{display:grid;grid-template-columns:18px repeat(5,1fr);gap:3px;max-width:440px;margin:0 auto}
+.mcell{aspect-ratio:1.6;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:0;border:1px solid #1c1c26;color:var(--gold);flex-wrap:wrap;line-height:1.3;overflow:hidden}
+.mlab{font-size:9px;color:var(--dim);border:none}
+.z1{background:rgba(51,255,119,.10)}
+.z2{background:rgba(255,204,51,.12)}
+.z3{background:rgba(255,123,0,.16)}
+.z4{background:rgba(255,51,68,.20)}
+
+details{border:1px solid #2a2a33;margin-bottom:8px;background:var(--panel)}
+details summary{cursor:pointer;padding:10px 12px;font-size:12px;letter-spacing:1px;list-style:none;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▸";color:var(--dim)}
+details[open] summary::after{content:"▾"}
+details .body{padding:0 12px 12px;font-size:12.5px;line-height:1.8;color:var(--text)}
+.body .sec{margin-top:10px;color:var(--gold);font-size:11px;letter-spacing:1px}
+.body .src{color:var(--dim);font-size:10px}
+.board-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #222;padding:9px 0;font-size:12px;align-items:center;flex-wrap:wrap}
+.board-row .bname{color:var(--orange);letter-spacing:1px}
+.board-row .bscore{color:var(--cyan)}
+.empty-hint{padding:14px 12px;font-size:11px;color:var(--dim);line-height:1.8;text-align:center}
+footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
+
+#lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#lockscreen.hide{display:none}
+.lockbox{width:100%;max-width:380px;border:2px solid var(--orange-dim);background:var(--panel);padding:22px 20px;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.lockbox h2{font-size:15px;color:var(--gold);letter-spacing:5px;text-align:center;margin-bottom:4px}
+.lockbox .lsub{font-size:10px;color:var(--dim);letter-spacing:2px;text-align:center;margin-bottom:18px}
+.lockbox label{font-size:11px;color:var(--gold);letter-spacing:2px;display:block;margin-bottom:6px}
+#lock-pass{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:15px;padding:10px;letter-spacing:2px}
+#lock-pass:focus{outline:none;border-color:var(--gold)}
+.lock-trust{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:10px;color:var(--dim);line-height:1.6}
+#lock-go{width:100%;background:var(--gold);border:none;color:#000;font-family:var(--mono);font-size:14px;font-weight:bold;letter-spacing:3px;padding:11px;cursor:pointer}
+#lock-err{color:var(--red);font-size:11px;margin-top:10px;min-height:14px}
+
+@media(max-width:560px){
+  .expo-grid{grid-template-columns:1fr}
+  header h1{font-size:15px}
+  details summary{min-height:44px;padding:12px;display:flex;align-items:center}
+  .qitem .qnums{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<div id="lockscreen">
+  <div class="lockbox">
+    <h2>NEXUS ACCESS</h2>
+    <div class="lsub">通行碼驗證 · 同 MAGI 主系統通行碼</div>
+    <label>PASSPHRASE</label>
+    <input type="password" id="lock-pass" autocomplete="off" spellcheck="false">
+    <div class="lock-trust">
+      <input type="checkbox" id="lock-trust">
+      <label for="lock-trust" style="margin:0;color:var(--dim);font-size:10px;letter-spacing:0;display:inline">信任此裝置（下次免輸入通行碼）</label>
+    </div>
+    <button id="lock-go">解鎖 UNLOCK</button>
+    <div id="lock-err"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>MAGI NEXUS</h1>
+    <div class="sub">風險×決策 · FROM PROBABILITY TO ACTION</div>
+  </div>
+  <div class="hstat" id="hstat">本頁不呼叫 AI<br>全部由 RISK 記錄推算</div>
+</header>
+
+<div class="tabs">
+  <a href="index.html">三賢人審議 MAGI</a>
+  <a href="risk.html">風險預測 RISK</a>
+  <a href="nexus.html" class="on">風險×決策 NEXUS</a>
+</div>
+
+<div class="expo-grid">
+  <div class="expo">
+    <div class="elab">目前總暴險 / EXPOSURE</div>
+    <div class="eval" id="ex-total">—</div>
+    <div class="esub" id="ex-total-sub">Σ 機率 × 損失（未判定案）</div>
+  </div>
+  <div class="expo">
+    <div class="elab">待判定風險 / OPEN</div>
+    <div class="eval" id="ex-open">—</div>
+    <div class="esub" id="ex-open-sub"></div>
+  </div>
+  <div class="expo">
+    <div class="elab">最大單一風險 / TOP RISK</div>
+    <div class="eval" id="ex-top">—</div>
+    <div class="esub" id="ex-top-sub"></div>
+  </div>
+</div>
+
+<div class="queue-box">
+  <div class="qtitle">行動佇列 / ACTION QUEUE　依「期望損失」排序</div>
+  <div class="qhint">風險與決策的關聯就在這裡：機率 × 損失 = 這件事值得你花多少注意力。排最上面的先處理；每筆附恐懼腦的絆線與理性腦的干預點，照著做就好，不用重新想。</div>
+  <div id="queue"></div>
+</div>
+
+<div class="matrix-box">
+  <div class="mtitle">風險地圖 / RISK MAP　所有未判定案的落點（數字＝案號）</div>
+  <div class="matrix" id="matrix"></div>
+  <div style="max-width:440px;margin:4px auto 0;display:flex;justify-content:space-between">
+    <span style="font-size:9px;color:var(--dim)">↑ 影響嚴重度</span>
+    <span style="font-size:9px;color:var(--dim)">發生可能性 →</span>
+  </div>
+</div>
+
+<details id="trust-box">
+  <summary>該信哪顆腦 / CALIBRATION SNAPSHOT</summary>
+  <div class="body" id="trust"></div>
+</details>
+
+<details id="base-box">
+  <summary>世界基準率參考庫 / BASE RATES</summary>
+  <div class="body">
+    <div style="font-size:10.5px;color:var(--dim);line-height:1.7">靜態參考庫（2026-07 編列，附出處）：這些是「同類事件在世界上的歷史發生率」，用來校對三腦的先驗，不是你手上這一案的機率。你的案子永遠要用證據修正。</div>
+    <div class="sec">專案 / 開發</div>
+    <div>IT 專案「完全成功」（如期、如預算、功能齊）約 31%；約 19% 中途取消；其餘超時或超支收場。<span class="src">— Standish Group CHAOS Report</span></div>
+    <div>大型 IT 專案平均超支 45%、平均超時 7%。<span class="src">— McKinsey × Oxford（2012）</span></div>
+    <div class="sec">創業 / 公司</div>
+    <div>台灣新設中小企業 4–5 年存活率超過 70%（2020 年設立者至 2024 仍營運 77.4%）——「撐不過五年」是迷思。<span class="src">— 經濟部《2025 中小企業白皮書》</span></div>
+    <div class="sec">餐飲</div>
+    <div>新餐廳首年歇業率約兩成、五年約半數退場——「九成倒閉」同樣是迷思。<span class="src">— 美國勞工統計局（BLS）長期追蹤研究區間</span></div>
+    <div class="sec">天災（台灣）</div>
+    <div>侵台颱風年均約 3–4 個（長期氣候平均值約 3.6 個／年）。<span class="src">— 中央氣象署氣候統計（1991–2020）</span></div>
+    <div class="sec">感情 / 婚姻</div>
+    <div>台灣近年「離結比」約四成上下（粗離婚率約 2.2‰）——注意這是全體統計，個案差異極大。<span class="src">— 內政部戶政統計</span></div>
+    <div class="sec" style="color:var(--dim)">使用方式</div>
+    <div style="font-size:11px;color:var(--dim)">跑預測前掃一眼：三腦給的「先驗」若跟這裡差很遠，先想想是你的案子真的特殊，還是腦在幻覺。這就是超級預測員的第一步——從基準率出發。</div>
+  </div>
+</details>
+
+<footer>NERV NEXUS — RISK IS A NUMBER. DECISION IS A CHOICE.</footer>
+</div>
+
+<script>
+const VAULT_SALT = "HZCjnMhAaUn1KjvJ6gmNxQ==";
+const VAULT_IV = "1gA4DVCCPfcoa5T0";
+const VAULT_ITER = 250000;
+const SUPABASE_URL = "https://gaouowojtmxwgpcetzmo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdhb3Vvd29qdG14d2dwY2V0em1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODU2NjMsImV4cCI6MjA5OTA2MTY2M30.DCTE07J4A5U1seQh_ZP3QAwKjgOHBFxlqz-8BBVOKPw";
+let SUPABASE_SECRET = "";
+
+const BRAIN_LABEL = { gambler:"GAMBLER 慾望腦", sentinel:"SENTINEL 恐懼腦", arbiter:"ARBITER 理性腦", ollama:"OLLAMA（舊）", gemini:"GEMINI（舊）", claude:"CLAUDE（舊）" };
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtMoney(n){ return isFinite(n) ? Math.round(n).toLocaleString("zh-Hant") : "—"; }
+
+const CAT_RULES = {
+  major: /重大|人生|結婚|離婚|買房|購屋|買車|購車|創業|開店|辭職|辭掉|離職|轉職|跳槽|裸辭|搬家|買地|移民|移居|生小孩|生育|生子|懷孕|退休|畢生|存款全|梭哈|全押|賣房|賣車|頂讓|收掉|結束營業|百萬|千萬/,
+  love: /愛情|感情|對象|女友|男友|女朋友|男朋友|老婆|老公|太太|先生|配偶|伴侶|曖昧|告白|表白|追求|分手|復合|交往|約會|相親|喜歡的人|心儀|另一半|婚姻|求婚|外遇|劈腿|遠距離/,
+  work_restaurant: /餐廳|海灘|沙灘|叫貨|收貨|進貨|備料|排班|班表|廚房|廚師|內場|外場|出餐|菜單|食材|供應商|廠商|包場|訂位|客訴|翻桌|營業額|門市|時薪|工讀|店員|備品|製冰機|咖啡機|冷藏|冷凍|冰箱|烤箱|生財器具|Eats365|iCHEF|POS|NUEIP/i,
+  work_dev: /系統|開發|程式|寫code|coding|app|API|自動化|部署|上線|重構|架構|資料庫|前端|後端|bug|除錯|串接|串聯|整合|GAS|Apps Script|n8n|Supabase|Vercel|life-os|ERP|AppSheet|LINE.*API|ESP32|IoT|Ollama|workflow|腳本|外掛|plugin/i,
+  work: /工作|上班|加班|會議|開會|客戶|報價|接案|專案|案子|老闆|主管|同事|下屬|合約|合作|KPI|績效|升遷|加薪|薪水|勞資|外包|廠商|生意|業務|營運/,
+  life: /健康|運動|健身|減肥|增肌|飲食|吃|喝|睡眠|作息|習慣|旅遊|旅行|出國|玩|娛樂|遊戲|追劇|看書|讀書|學習|上課|課程|進修|理財|存錢|記帳|訂閱|保險|買.*台|搬到|租屋|租房|寵物|家人|朋友聚|天氣|颱風|下雨/
+};
+const CAT_LABEL = { major:"重大決策", love:"愛情", life:"生活", general:"一般", work:"工作", "work:restaurant":"工作·餐廳", "work:dev":"工作·開發" };
+function classifyPred(q){
+  const text = String(q||"");
+  if(CAT_RULES.major.test(text)) return { cat:"major", sub:null };
+  if(CAT_RULES.love.test(text)) return { cat:"love", sub:null };
+  if(CAT_RULES.work_restaurant.test(text)) return { cat:"work", sub:"restaurant" };
+  if(CAT_RULES.work_dev.test(text)) return { cat:"work", sub:"dev" };
+  if(CAT_RULES.work.test(text)) return { cat:"work", sub:null };
+  if(CAT_RULES.life.test(text)) return { cat:"life", sub:null };
+  return { cat:"general", sub:null };
+}
+function catTagHtml(q){
+  const cls = classifyPred(q);
+  const key = cls.sub ? `${cls.cat}:${cls.sub}` : cls.cat;
+  const sub = cls.sub ? ` cat-${cls.cat}-${cls.sub}` : "";
+  return `<span class="tag cat-tag cat-${cls.cat}${sub}">${esc(CAT_LABEL[key]||"一般")}</span>`;
+}
+
+function loadPreds(){
+  try{
+    const arr = JSON.parse(localStorage.getItem("risk_preds")||"[]");
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+
+function probVote(p){ return p>=55 ? "會" : p<=45 ? "不會" : "保留"; }
+function judgeOf(pred){
+  const oks = (pred.forecasts||[]).filter(f=>f.ok);
+  const yes = oks.filter(f=>probVote(f.probability)==="會").length;
+  const no = oks.filter(f=>probVote(f.probability)==="不會").length;
+  if(yes>no) return { t:"會發生", cls:"t-judge-yes" };
+  if(no>yes) return { t:"不會發生", cls:"t-judge-no" };
+  return { t:"無法裁定", cls:"t-judge-hold" };
+}
+function exposureOf(p){
+  if(!p.agg || p.agg.evLoss==null || !(p.agg.evLoss>0)) return null;
+  return Math.round(p.agg.median/100 * p.agg.evLoss);
+}
+function pickBrainField(p, brainId, field, sub){
+  const fs = (p.forecasts||[]).filter(f=>f.ok);
+  const hit = fs.find(f=>f.brain===brainId) || fs.find(f=>sub ? (f[field]&&f[field][sub]) : f[field]);
+  if(!hit) return "";
+  return sub ? ((hit[field]||{})[sub]||"") : (hit[field]||"");
+}
+
+function render(){
+  const preds = loadPreds();
+  const open = preds.filter(p=>!p.outcome);
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+
+  // 暴險總覽
+  const exposures = open.map(p=>({p, ex: exposureOf(p)}));
+  const withEx = exposures.filter(x=>x.ex!=null);
+  const noEx = exposures.length - withEx.length;
+  const total = withEx.reduce((s,x)=>s+x.ex, 0);
+  $("ex-total").innerHTML = withEx.length ? `${fmtMoney(total)}<small> 元</small>` : "—";
+  $("ex-total-sub").textContent = withEx.length
+    ? `Σ 機率 × 損失（${withEx.length} 筆已估${noEx?`；另 ${noEx} 筆未估金額`:""}）`
+    : "尚無帶金額估計的未判定案";
+  $("ex-open").innerHTML = `${open.length}<small> 筆</small>`;
+  const overdue = open.filter(p=>p.deadline && p.deadline <= todayStr).length;
+  $("ex-open-sub").textContent = overdue ? `其中 ${overdue} 筆已過期限待對答案` : "到期記得回 RISK 對答案";
+  if(withEx.length){
+    const top = withEx.slice().sort((a,b)=>b.ex-a.ex)[0];
+    $("ex-top").innerHTML = `${fmtMoney(top.ex)}<small> 元</small>`;
+    $("ex-top-sub").textContent = `#${String(top.p.no).padStart(3,"0")} ${top.p.q.slice(0,18)}${top.p.q.length>18?"…":""}`;
+  }else{
+    $("ex-top").textContent = "—";
+    $("ex-top-sub").textContent = "";
+  }
+
+  // 行動佇列
+  const queue = $("queue");
+  if(!open.length){
+    queue.innerHTML = `<div class="empty-hint">沒有未判定的預測。到 RISK 分頁跑幾筆，這裡會自動把它們排成待辦。</div>`;
+  }else{
+    const sorted = exposures.slice().sort((a,b)=>{
+      if(a.ex!=null && b.ex!=null) return b.ex-a.ex;
+      if(a.ex!=null) return -1;
+      if(b.ex!=null) return 1;
+      const sa=(a.p.agg?a.p.agg.likelihood*a.p.agg.impact:0), sb=(b.p.agg?b.p.agg.likelihood*b.p.agg.impact:0);
+      return sb-sa;
+    });
+    queue.innerHTML = sorted.map((x,i)=>{
+      const p = x.p;
+      const jd = judgeOf(p);
+      const trip = pickBrainField(p, "sentinel", "tripwire");
+      const lever = pickBrainField(p, "arbiter", "causal", "lever") || pickBrainField(p, "gambler", "causal", "lever");
+      const od = p.deadline && p.deadline <= todayStr;
+      return `<div class="qitem">
+        <div class="qq"><span class="rank">${i+1}.</span>${catTagHtml(p.q)}<span class="tag ${jd.cls}">${jd.t}</span> #${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
+        <div class="qnums">
+          <span>機率 <b class="qp">${p.agg?p.agg.median:"?"}%</b></span>
+          <span>期望損失 <b>${x.ex!=null?fmtMoney(x.ex)+" 元":"未估"}</b>${p.agg&&p.agg.evLoss?`<span style="color:var(--dim)">（損失 ${fmtMoney(p.agg.evLoss)}）</span>`:""}</span>
+          <span>期限 <span class="${od?"overdue":""}">${p.deadline||"未定"}${od?" 已到期":""}</span></span>
+        </div>
+        ${trip?`<div class="qact">⚡ 絆線：${esc(trip)}</div>`:""}
+        ${lever?`<div class="qact"><span class="lv">⚙ 干預點：${esc(lever)}</span></div>`:""}
+      </div>`;
+    }).join("");
+  }
+
+  // 風險地圖
+  const grid = $("matrix");
+  grid.innerHTML = "";
+  const cellMap = {};
+  open.forEach(p=>{
+    if(!p.agg) return;
+    const key = p.agg.likelihood+","+p.agg.impact;
+    (cellMap[key] = cellMap[key]||[]).push(p.no);
+  });
+  for(let imp=5; imp>=1; imp--){
+    const lab = document.createElement("div");
+    lab.className = "mcell mlab";
+    lab.textContent = imp;
+    grid.appendChild(lab);
+    for(let lik=1; lik<=5; lik++){
+      const cell = document.createElement("div");
+      const sev = lik*imp;
+      cell.className = "mcell " + (sev>=15?"z4":sev>=8?"z3":sev>=4?"z2":"z1");
+      const nos = cellMap[lik+","+imp];
+      if(nos) cell.textContent = nos.map(n=>"#"+n).join(" ");
+      grid.appendChild(cell);
+    }
+  }
+
+  // 該信哪顆腦
+  const resolved = preds.filter(p=>p.scores);
+  const trust = $("trust");
+  if(!resolved.length){
+    trust.innerHTML = `<div style="color:var(--dim);font-size:11px;padding-top:8px">還沒有對過答案的預測。累積幾筆後，這裡會告訴你哪顆腦最可信、哪顆腦愛灌水。</div>`;
+  }else{
+    const stats = {};
+    resolved.forEach(p=>Object.entries(p.scores).forEach(([k,s])=>{
+      if(typeof s!=="number") return;
+      (stats[k]=stats[k]||{n:0,sum:0}); stats[k].n++; stats[k].sum+=s;
+    }));
+    const rows = Object.keys(stats).map(k=>({k,n:stats[k].n,avg:stats[k].sum/stats[k].n})).sort((a,b)=>a.avg-b.avg);
+    const best = rows[0];
+    const enough = best.n >= 5;
+    trust.innerHTML = `
+      <div style="padding-top:8px">目前校準最佳：<b style="color:var(--gold)">${BRAIN_LABEL[best.k]||best.k}</b>（Brier ${best.avg.toFixed(3)}，${best.n} 筆）${enough?"":"<span style='color:var(--dim);font-size:10px'>——樣本仍少，僅供參考</span>"}</div>
+      ${rows.map(r=>`<div class="board-row"><span class="bname">${BRAIN_LABEL[r.k]||r.k}</span><span class="bscore">Brier ${r.avg.toFixed(3)}</span><span style="color:var(--dim)">${r.n} 筆</span></div>`).join("")}
+      <div style="color:var(--dim);font-size:10px;margin-top:8px">用法：三腦分歧時，加權相信校準好的那顆；某顆腦長期 Brier > 0.25，它的票要打折。</div>`;
+  }
+}
+
+// ━━ Supabase 唯讀同步（同 RISK 的合併規則）━━
+async function sbRpc(fnName, args){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args)
+  });
+  if(!r.ok) throw new Error(`SB HTTP ${r.status}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+async function syncPreds(){
+  if(!SUPABASE_SECRET) return;
+  try{
+    const rows = await sbRpc("risk_load_predictions", { p_secret: SUPABASE_SECRET, p_limit: 100 });
+    if(!Array.isArray(rows) || !rows.length) return;
+    const local = loadPreds();
+    const map = new Map(local.map(p=>[p.no, p]));
+    rows.forEach(r=>{
+      const remote = { no:r.pred_no, q:r.question, ctx:r.context||"", deadline:r.deadline||"", forecasts:r.forecasts||[], agg:r.aggregate||null, outcome:r.outcome||null, scores:r.scores||null, t:Date.parse(r.updated_at||r.created_at)||Date.now() };
+      const mine = map.get(remote.no);
+      if(!mine || (remote.outcome && !mine.outcome)) map.set(remote.no, remote);
+    });
+    const merged = [...map.values()].sort((a,b)=>b.no-a.no).slice(0,100);
+    localStorage.setItem("risk_preds", JSON.stringify(merged));
+    render();
+  }catch(e){ /* 雲端不通就用本機資料，照樣能看 */ }
+}
+
+function boot(){
+  render();
+  syncPreds();
+}
+
+// ━━ 解鎖（與 MAGI 共用 vault 與信任機制；本頁只需 supabase_secret）━━
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+async function deriveVaultKey(passphrase){
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), {name:"PBKDF2"}, false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt: b64ToBuf(VAULT_SALT), iterations: VAULT_ITER, hash:"SHA-256"},
+    baseKey, {name:"AES-GCM", length:256}, false, ["decrypt"]
+  );
+}
+let VAULT_CIPHER = null;
+async function fetchCipher(){
+  // vault 密文只存在 risk.html 原始碼裡，抓同目錄頁面拆出來，避免三份密文不同步
+  const r = await fetch("risk.html");
+  const html = await r.text();
+  const m = html.match(/cipher:\s*"([^"]+)"/);
+  if(!m) throw new Error("cipher not found");
+  return m[1];
+}
+async function decryptVaultWithKey(key){
+  if(!VAULT_CIPHER) VAULT_CIPHER = await fetchCipher();
+  const plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv: b64ToBuf(VAULT_IV)}, key, b64ToBuf(VAULT_CIPHER));
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+function applyPayload(p){ SUPABASE_SECRET = p.supabase_secret || ""; }
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open("magi-vault-db", 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore("keys"); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function storeTrustKey(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction("keys","readwrite");
+    tx.objectStore("keys").put(key, "trustkey");
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function loadTrustKey(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve)=>{
+      const tx = db.transaction("keys","readonly");
+      const getReq = tx.objectStore("keys").get("trustkey");
+      getReq.onsuccess = ()=>resolve(getReq.result || null);
+      getReq.onerror = ()=>resolve(null);
+    });
+  }catch(e){ return null; }
+}
+function hideLockscreen(){ $("lockscreen").classList.add("hide"); }
+const THROTTLE_KEY = "magi_lock_state";
+function getLockState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(THROTTLE_KEY) || "{}");
+    return { fails: s.fails||0, until: s.until||0 };
+  }catch(e){ return { fails:0, until:0 }; }
+}
+function setLockState(state){
+  try{ localStorage.setItem(THROTTLE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function showLockThrottled(remainMs){
+  $("lock-err").textContent = `嘗試過多，請等待 ${Math.max(1, Math.ceil(remainMs/1000))} 秒後再試`;
+  $("lock-pass").value = "";
+}
+async function tryUnlock(passphrase){
+  const state = getLockState();
+  if(state.until > Date.now()){ showLockThrottled(state.until - Date.now()); return; }
+  try{
+    const key = await deriveVaultKey(passphrase);
+    const payload = await decryptVaultWithKey(key);
+    applyPayload(payload);
+    if($("lock-trust").checked){
+      const trustKey = await deriveVaultKey(passphrase);
+      try{ await storeTrustKey(trustKey); }catch(e){}
+    }
+    setLockState({fails:0, until:0});
+    hideLockscreen();
+    boot();
+  }catch(e){
+    const fails = state.fails + 1;
+    let until = 0;
+    if(fails >= 5) until = Date.now() + Math.min(30000 * Math.pow(2, fails-5), 300000);
+    setLockState({fails, until});
+    if(until > Date.now()) showLockThrottled(until - Date.now());
+    else{
+      $("lock-err").textContent = "通行碼錯誤，請重新輸入";
+      $("lock-pass").value = "";
+      $("lock-pass").focus();
+    }
+  }
+}
+$("lock-go").onclick = ()=>{
+  const p = $("lock-pass").value;
+  const state = getLockState();
+  if(state.until > Date.now()){ showLockThrottled(state.until - Date.now()); return; }
+  if(!p) return;
+  tryUnlock(p);
+};
+$("lock-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") $("lock-go").click(); });
+
+(async function initLock(){
+  const trustKey = await loadTrustKey();
+  if(trustKey){
+    try{
+      const payload = await decryptVaultWithKey(trustKey);
+      applyPayload(payload);
+      hideLockscreen();
+      boot();
+      return;
+    }catch(e){}
+  }
+  $("lock-pass").focus();
+})();
+</script>
+</body>
+</html>
