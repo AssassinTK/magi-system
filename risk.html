@@ -90,6 +90,16 @@ button:focus-visible,details summary:focus-visible{outline:2px solid var(--cyan)
 .verdict.zone-low{border-color:var(--green);color:var(--green);background:rgba(51,255,119,.05)}
 .verdict.zone-mid{border-color:var(--yellow);color:var(--yellow);background:rgba(255,204,51,.05)}
 .verdict.zone-high{border-color:var(--red);color:var(--red);background:rgba(255,51,68,.05)}
+.verdict .vtao{margin-top:10px;font-size:12.5px;color:#d4b46a;letter-spacing:1px;line-height:1.7}
+.verdict .vtao span{color:var(--dim);font-size:10.5px}
+.bayes-chain{line-height:2}
+.bayes-chain .bu{color:var(--green)}
+.bayes-chain .bd{color:var(--red)}
+.bayes-chain b{color:var(--cyan)}
+.tripwire{color:var(--yellow);line-height:1.8}
+#rev-banner{border:1px solid var(--cyan);background:rgba(56,189,248,.07);color:var(--cyan);font-size:11px;letter-spacing:1px;padding:9px 10px;margin-bottom:12px;line-height:1.7}
+#rev-banner button{background:none;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--mono);font-size:10px;padding:3px 10px;margin-left:8px;cursor:pointer}
+.review-btns .rb-rev{border-color:var(--cyan);color:var(--cyan)}
 
 .rangebar{position:relative;height:14px;background:#0a0a10;border:1px solid #333;margin:12px auto 0;max-width:420px}
 .rangebar .band{position:absolute;top:0;bottom:0;background:rgba(56,189,248,.25)}
@@ -252,6 +262,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div class="vtitle" id="vtitle"></div>
   <div class="vsub" id="vsub"></div>
   <div class="valert" id="valert"></div>
+  <div class="vtao" id="vtao"></div>
   <div class="rangebar" id="rangebar" style="display:none">
     <div class="band" id="rb-band"></div>
     <div class="pin" id="rb-pin"></div>
@@ -273,6 +284,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <div class="console" id="console"></div>
 
 <div class="inbox">
+  <div id="rev-banner" style="display:none">貝氏重估 <b id="rev-no"></b> — 在背景末尾補上新證據，再按開始預測（同案號覆寫，保留修正軌跡）<button onclick="cancelRevise()">取消</button></div>
   <label>參戰引擎 / ENGINES（可單選、可多選——多引擎才有交叉校準）</label>
   <div class="eng-row">
     <button class="eng-btn" id="eng-ollama" onclick="toggleEngine('ollama')">OLLAMA<small>本機 · 免費</small></button>
@@ -314,6 +326,24 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <summary>引擎校準計分板 / CALIBRATION</summary>
   <div class="board-hint">Brier 分數 =（預測機率 − 實際結果）²，0 最準、0.25 = 跟丟銅板一樣、1 最離譜。累積夠多筆就知道哪個引擎過度自信。</div>
   <div id="board"></div>
+</details>
+
+<details id="playbook-box">
+  <summary>決策術參考 / NASA PLAYBOOK</summary>
+  <div class="body" style="padding:10px 12px 14px">
+    <div class="sec">NASA RIDM 風險知情決策三部曲（SP-2010-576 手冊）</div>
+    <div>① 定義績效指標＋列出備選方案 → ② 對各方案做風險分析 → ③ 風險知情的協商裁決。重點是「知情取捨」而非「風險最小」。本頁＝第②步的機率引擎，MAGI 審議＝第③步的裁決庭，兩個分頁合體就是完整 RIDM。</div>
+    <div class="sec">飛行規則 FLIGHT RULES（絆線）</div>
+    <div>NASA 起飛前就寫好數千條「若出現 X → 立刻做 Y」，高壓下不靠臨場意志力。每筆預測明細裡的「絆線」就是你的飛行規則——事先寫好觸發條件，超過閾值自動行動，人不在場系統也穩。</div>
+    <div class="sec">GO / NO-GO 表決</div>
+    <div>發射前逐一輪詢子系統負責人，任何一個 NO-GO 就停。MAGI 特級議案的一票否決同源；本頁的引擎分歧警報是它的機率版——分歧本身就是 NO-GO 訊號。</div>
+    <div class="sec">貝氏更新要訣（超級預測員實證）</div>
+    <div>先驗＝同類事件的基準率，別從印象出發；新證據來就「小幅、頻繁」修正，勝過大幅擺動；預測必須留底對答案（Brier 計分板），校準是練出來的不是天生的。待判定案用「＋新證據重估」按鈕做正式的貝氏修正，修正軌跡會留在記錄上。</div>
+    <div class="sec">綜觀效應 OVERVIEW EFFECT</div>
+    <div>太空人從軌道看地球的認知轉變：整體浮現、邊界消失、瑣事縮小。決策版＝每筆預測都拉到十年高度問一次「這件事真正的份量」，防止在小風險上過度消耗、在大風險上視而不見。</div>
+    <div class="sec">道德經 × 風險管理對照</div>
+    <div>為之於未有，治之於未亂（防患未然）｜圖難於其易，為大於其細（拆解入手）｜慎終如始，則無敗事（收尾謹慎）｜知不知，上（承認不確定是上策）｜飄風不終朝，驟雨不終日（極端會回歸均值）｜知止不殆（設好停損就不危險）。聚合判定下方的章句，由系統依結果特徵自動對應。</div>
+  </div>
 </details>
 
 <details id="history-box">
@@ -415,18 +445,23 @@ function renderEngineState(){
   });
 }
 
-const RISK_SYS = `你是 MAGI 風險預測系統的獨立預測單元，使用 NASA 決策分析方法評估命題。原則：
-1. 先想「同類事件的基準率」再依本案證據調整，不可忽略基準率。
-2. 對抗錨定效應與過度自信：90% 信賴區間寧可寬、不可窄。
-3. 區分可控與不可控因素，機率要反映「按目前狀態不額外干預」的走向。
+const RISK_SYS = `你是 MAGI 風險預測系統的獨立預測單元，使用 NASA RIDM 決策分析＋貝氏推理評估命題。推理程序：
+1. 貝氏：先定「先驗」＝同類事件的歷史基準率（不可忽略基準率），再逐條列本案證據往上或往下修正，得出後驗機率。頻繁小幅修正優於大幅擺動，90% 信賴區間寧可寬、不可窄（對抗過度自信與錨定）。
+2. 因果：區分相關與因果，寫出「原因 → 機制 → 結果」因果鏈，並指出鏈上最值得介入的一個節點（干預點）。
+3. NASA 飛行規則：事前寫好絆線——「若出現某訊號 → 立刻採取某行動」，讓決策在壓力下不靠臨場意志力。
+4. 綜觀效應：像太空人看地球一樣拉高拉遠，一句話說出這件事放在提問者整體人生／事業版圖的真實份量。
 只輸出純 JSON 物件，不得有任何其他文字：
-{"probability":整數0-100（事件在期限內發生的機率）,
+{"prior":整數0-100（先驗：同類事件基準率）,
+"updates":[{"e":"證據一句話","dir":"↑或↓"}]（最多3條，往上或往下修正機率的關鍵證據）,
+"probability":整數0-100（後驗：事件在期限內發生的機率）,
 "ci_low":整數0-100,"ci_high":整數0-100（90%信賴區間下上界）,
 "scenarios":{"best":{"p":整數,"desc":"一句話樂觀情境"},"base":{"p":整數,"desc":"一句話基準情境"},"worst":{"p":整數,"desc":"一句話悲觀情境"}}（三者p合計約100）,
 "likelihood":整數1-5（發生可能性等級）,"impact":整數1-5（若發生對提問者的影響嚴重度）,
-"key_drivers":["最多3個左右結果的關鍵因子"],
+"causal":{"chain":"原因→機制→結果 的因果鏈一句話","lever":"最值得介入的節點與做法一句話"},
 "biases":["提問者本案最可能踩到的認知偏誤，最多2個，例：錨定效應、過度自信、忽略基準率、月暈效應、從眾效應"],
+"tripwire":"絆線一句話：若出現○○訊號→立刻○○",
 "flexibility":"一句話：如何保留彈性、把不確定性變成選擇權",
+"overview":"綜觀一句話：十年後回看，這件事在全局的真實份量",
 "reason":"兩三句核心理由"}`;
 
 function $(id){ return document.getElementById(id); }
@@ -548,13 +583,21 @@ function sanitizeForecast(v){
     const s = (sc[k] && typeof sc[k]==="object") ? sc[k] : {};
     scn[k] = { p: clampInt(s.p, 0, 100, 33), desc: String(s.desc||"").slice(0,80) };
   });
+  const cz = (v.causal && typeof v.causal==="object") ? v.causal : {};
   return {
     probability: p, ci_low: lo, ci_high: hi, scenarios: scn,
+    prior: clampInt(v.prior, 0, 100, p),
+    updates: (Array.isArray(v.updates)?v.updates:[]).slice(0,3).map(u=>({
+      e: String((u&&u.e)||"").slice(0,80),
+      dir: (u&&String(u.dir||"").includes("↓")) ? "↓" : "↑"
+    })).filter(u=>u.e),
     likelihood: clampInt(v.likelihood, 1, 5, 3),
     impact: clampInt(v.impact, 1, 5, 3),
-    key_drivers: (Array.isArray(v.key_drivers)?v.key_drivers:[]).slice(0,3).map(x=>String(x).slice(0,60)),
+    causal: { chain: String(cz.chain||"").slice(0,150), lever: String(cz.lever||"").slice(0,150) },
     biases: (Array.isArray(v.biases)?v.biases:[]).slice(0,2).map(x=>String(x).slice(0,60)),
+    tripwire: String(v.tripwire||"").slice(0,150),
     flexibility: String(v.flexibility||"").slice(0,150),
+    overview: String(v.overview||"").slice(0,150),
     reason: String(v.reason||"").slice(0,400)
   };
 }
@@ -615,6 +658,8 @@ function renderVerdict(agg){
   else if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 賢人重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
   else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 賢人意見分歧（差距 ${agg.spread} 點）— 建議看各引擎理由找分歧點`; }
   else { a.style.color = "var(--green)"; a.textContent = `✓ 賢人共識良好（差距 ${agg.spread} 點）`; }
+  const tao = laoTzu(agg);
+  $("vtao").innerHTML = `道德經曰「${tao.t}」<span>— ${tao.w}</span>`;
   const bar = $("rangebar");
   bar.style.display = "block";
   $("rb-band").style.left = agg.lo+"%";
@@ -653,22 +698,41 @@ function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"
 function forecastDetailHtml(f){
   if(!f.ok) return `<div class="body" style="color:var(--red)">呼叫失敗：${esc(f.error)}</div>`;
   const sc = f.scenarios;
+  const bayes = (f.prior!=null || (f.updates&&f.updates.length)) ? `
+    <div class="sec">貝氏推理鏈 BAYES</div>
+    <div class="bayes-chain">先驗 ${f.prior}%${(f.updates||[]).map(u=>` <span class="${u.dir==="↓"?"bd":"bu"}">${u.dir}</span> ${esc(u.e)}`).join(" →")} → <b>後驗 ${f.probability}%</b></div>` : "";
+  const causal = (f.causal && (f.causal.chain||f.causal.lever)) ? `
+    <div class="sec">因果鏈 CAUSAL</div>
+    <div>${esc(f.causal.chain)}</div>
+    ${f.causal.lever?`<div style="color:var(--cyan)">⚙ 干預點：${esc(f.causal.lever)}</div>`:""}` : "";
   return `<div class="body">
+    ${bayes}
+    ${causal}
     <div class="sec">情境分析 SCENARIOS</div>
     <ul>
       <li>樂觀 ${sc.best.p}%：${esc(sc.best.desc)}</li>
       <li>基準 ${sc.base.p}%：${esc(sc.base.desc)}</li>
       <li>悲觀 ${sc.worst.p}%：${esc(sc.worst.desc)}</li>
     </ul>
-    <div class="sec">關鍵因子 DRIVERS</div>
-    <ul>${f.key_drivers.map(d=>`<li>${esc(d)}</li>`).join("")}</ul>
     <div class="sec">偏誤警示 BIAS ALERT</div>
     <ul>${f.biases.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>
+    ${f.tripwire?`<div class="sec">絆線 TRIPWIRE（NASA 飛行規則）</div><div class="tripwire">⚡ ${esc(f.tripwire)}</div>`:""}
     <div class="sec">彈性建議 FLEXIBILITY</div>
     <div>${esc(f.flexibility)}</div>
+    ${f.overview?`<div class="sec">綜觀 OVERVIEW EFFECT</div><div style="color:var(--dim)">🜨 ${esc(f.overview)}</div>`:""}
     <div class="sec">核心理由 REASON</div>
     <div>${esc(f.reason)}</div>
   </div>`;
+}
+
+// ━━ 道德經對應（規則引擎，不吃 token 不會幻覺，依聚合特徵選章句）━━
+function laoTzu(agg){
+  if(agg.n === 1) return { t:"知人者智，自知者明。", w:"單引擎之見——先看清自己判斷的盲點" };
+  if(agg.spread >= 30) return { t:"知不知，上；不知知，病。", w:"承認不知道，是上策；分歧大代表誰都還不知道" };
+  if(agg.median >= 85 || agg.median <= 15) return { t:"飄風不終朝，驟雨不終日。", w:"極端不會持久——機率貼近 0 或 100 時，先懷疑過度自信" };
+  if(agg.zone === "high") return { t:"為之於未有，治之於未亂。", w:"在事情未發生前處理，在混亂未成形前治理" };
+  if(agg.zone === "mid") return { t:"圖難於其易，為大於其細。", w:"難事從容易處下手，大事從細節做起" };
+  return { t:"慎終如始，則無敗事。", w:"低風險最容易陰溝翻船——收尾像開頭一樣謹慎" };
 }
 
 function renderResults(forecasts){
@@ -698,6 +762,27 @@ function savePred(p){
   localStorage.setItem("risk_preds", JSON.stringify(preds.slice(0,100)));
 }
 
+// ━━ 貝氏重估（新證據 → 同案號覆寫重算）━━
+let reviseTarget = null;
+function startRevise(no){
+  const p = loadPreds().find(x=>x.no===no);
+  if(!p) return;
+  reviseTarget = no;
+  $("q").value = p.q;
+  $("ctx").value = (p.ctx ? p.ctx+"\n" : "") + "【新證據】";
+  $("deadline").value = p.deadline || "";
+  $("rev-no").textContent = `#${String(no).padStart(3,"0")}`;
+  $("rev-banner").style.display = "block";
+  $("rev-banner").scrollIntoView({behavior:"smooth", block:"center"});
+  const c = $("ctx");
+  c.focus();
+  c.setSelectionRange(c.value.length, c.value.length);
+}
+function cancelRevise(){
+  reviseTarget = null;
+  $("rev-banner").style.display = "none";
+}
+
 // ━━ 主流程 ━━
 async function run(){
   const q = $("q").value.trim();
@@ -705,15 +790,20 @@ async function run(){
   const ctx = $("ctx").value.trim();
   const deadline = $("deadline").value;
   const fleet = activeKeys();
+  const revising = reviseTarget ? loadPreds().find(x=>x.no===reviseTarget) : null;
+  const no = revising ? revising.no : null;
   $("go").disabled = true;
   $("verdict").className = "verdict";
   $("matrix-box").style.display = "none";
   $("results").innerHTML = "";
   renderEngineState();
   fleet.forEach(k=>setUnit(k,"","待機"));
-  predNo++;
-  localStorage.setItem("risk_predno", predNo);
-  clog(`預測 #${String(predNo).padStart(3,"0")} 受理 — ${fleet.length===1?"單引擎（"+fleet[0].toUpperCase()+"）":fleet.length+" 引擎並行"}推算`);
+  if(!revising){
+    predNo++;
+    localStorage.setItem("risk_predno", predNo);
+  }
+  const useNo = revising ? no : predNo;
+  clog(`預測 #${String(useNo).padStart(3,"0")} ${revising?`貝氏重估（第 ${(revising.rev||0)+1} 次修正）`:"受理"} — ${fleet.length===1?"單引擎（"+fleet[0].toUpperCase()+"）":fleet.length+" 引擎並行"}推算`);
   prailStart_();
   prailSet(fleet.length===1 ? `${fleet[0].toUpperCase()} 推算中...` : `${fleet.length} 引擎並行推算中...`);
   try{
@@ -728,7 +818,7 @@ async function run(){
     const oks = forecasts.filter(f=>f.ok);
     if(!oks.length){
       clog("參戰引擎全數離線，本次預測作廢（未計入記錄）", "ln-err");
-      predNo--; localStorage.setItem("risk_predno", predNo);
+      if(!revising){ predNo--; localStorage.setItem("risk_predno", predNo); }
       prailStop(); $("go").disabled = false;
       return;
     }
@@ -738,11 +828,19 @@ async function run(){
     renderMatrix(agg, oks);
     renderResults(forecasts);
     recalcEV();
-    const pred = { no:predNo, q, ctx, deadline, forecasts, agg, outcome:null, scores:null, t:Date.now() };
+    const pred = { no:useNo, q, ctx, deadline, forecasts, agg, outcome:null, scores:null,
+      rev: revising ? (revising.rev||0)+1 : 0,
+      prevMedian: revising && revising.agg ? revising.agg.median : null,
+      t: Date.now() };
     savePred(pred);
     sbSavePred(pred);
     renderAllLists();
-    clog(`聚合完成：${agg.median}%（${oks.length}/3 引擎），差距 ${agg.spread} 點`, "ln-ok");
+    if(revising && pred.prevMedian != null){
+      const d = agg.median - pred.prevMedian;
+      clog(`貝氏修正：${pred.prevMedian}% → ${agg.median}%（${d>0?"+":""}${d} 點）`, "ln-ok");
+    }
+    cancelRevise();
+    clog(`聚合完成：${agg.median}%（${oks.length}/${fleet.length} 引擎），差距 ${agg.spread} 點`, "ln-ok");
     $("verdict").scrollIntoView({behavior:"smooth", block:"start"});
   }catch(e){
     clog(`系統異常：${e.message}`, "ln-err");
@@ -840,6 +938,7 @@ function renderReview(){
         <button class="rb-true" onclick="resolvePred(${p.no},'發生')">發生了</button>
         <button class="rb-false" onclick="resolvePred(${p.no},'未發生')">沒發生</button>
         <button class="rb-na" onclick="resolvePred(${p.no},'無法判定')">無法判定</button>
+        <button class="rb-rev" onclick="startRevise(${p.no})">＋新證據重估</button>
       </div>
     </div>`;
   }).join("");
@@ -893,8 +992,9 @@ function renderHistory(){
     const fLines = (p.forecasts||[]).map(f=> f.ok
       ? `<li>${f.engine.toUpperCase()}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
       : `<li>${f.engine.toUpperCase()}：離線</li>`).join("");
+    const revTag = p.rev ? `<span class="tag t-cyan">修正×${p.rev}${p.prevMedian!=null?` ${p.prevMedian}→${p.agg?p.agg.median:"?"}%`:""}</span> ` : "";
     return `<details class="hist-item">
-      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${tag}</span></summary>
+      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}</span></summary>
       <div class="body">
         <div class="sec">命題</div><div>${esc(p.q)}</div>
         ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
