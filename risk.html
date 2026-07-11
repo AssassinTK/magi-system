@@ -76,7 +76,11 @@ textarea:focus,input:focus{outline:none;border-color:var(--cyan)}
 .tmpl-btn:active{transform:scale(.97);opacity:.85}
 .dl-row{display:flex;gap:8px;margin:8px 0 12px;align-items:center;flex-wrap:wrap}
 .dl-row label{margin:0;flex-shrink:0}
-.dl-row input{flex:1;min-width:150px}
+.dl-row input{flex:1;min-width:150px;cursor:pointer}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.75);cursor:pointer;opacity:.9}
+.dl-quick{background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px 10px;cursor:pointer;min-height:36px;flex-shrink:0;transition:border-color .2s,color .2s}
+.dl-quick:hover{border-color:var(--cyan);color:var(--cyan)}
+.dl-quick:active{transform:scale(.97)}
 #go{width:100%;background:var(--cyan);border:none;color:#000;font-family:var(--mono);font-size:15px;font-weight:bold;letter-spacing:4px;padding:12px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));transition:transform .08s ease,opacity .08s ease}
 #go:disabled{background:#123240;color:#566;cursor:not-allowed}
 #go:active{transform:scale(.97);opacity:.85}
@@ -311,6 +315,9 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div class="dl-row">
     <label>判定期限</label>
     <input type="date" id="deadline">
+    <button class="dl-quick" onclick="quickDeadline(7)">＋1週</button>
+    <button class="dl-quick" onclick="quickDeadline(30)">＋1月</button>
+    <button class="dl-quick" onclick="quickDeadline(90)">＋3月</button>
   </div>
   <button id="go">開始預測 / FORECAST</button>
 </div>
@@ -1044,6 +1051,12 @@ function useTemplate(k){
   $("q").focus();
 }
 
+// 用本地時區組字串：toISOString 是 UTC，台灣晚上會差一天
+function quickDeadline(days){
+  const d = new Date(Date.now() + days*86400000);
+  $("deadline").value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
 function renderCfg(){
   const grid = $("cfg-grid");
   grid.innerHTML = "";
@@ -1082,6 +1095,7 @@ function boot(){
   $("hist-search").oninput = renderHistory;
   $("hist-cat").onchange = renderHistory;
   $("hist-status").onchange = renderHistory;
+  $("deadline").addEventListener("click", ()=>{ try{ $("deadline").showPicker(); }catch(e){} });
   renderCfg();
   renderEngineState();
   clog("MAGI RISK DIVISION 起動 — 三人性腦（慾望/恐懼/理性）× 多數決 · NASA 決策分析程序");
