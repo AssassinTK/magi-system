@@ -90,6 +90,12 @@ button:focus-visible,details summary:focus-visible{outline:2px solid var(--cyan)
 .verdict.zone-low{border-color:var(--green);color:var(--green);background:rgba(51,255,119,.05)}
 .verdict.zone-mid{border-color:var(--yellow);color:var(--yellow);background:rgba(255,204,51,.05)}
 .verdict.zone-high{border-color:var(--red);color:var(--red);background:rgba(255,51,68,.05)}
+.verdict .vjudge{font-size:30px;font-weight:bold;letter-spacing:8px;margin-bottom:2px}
+.verdict .vjudge.j-yes{color:var(--cyan)}
+.verdict .vjudge.j-no{color:var(--orange)}
+.verdict .vjudge.j-hold{color:var(--yellow)}
+.verdict .vvotes{font-size:11px;color:var(--dim);letter-spacing:2px;margin-bottom:10px}
+.verdict .vjudge~.vtitle{font-size:22px;letter-spacing:3px}
 .verdict .vtao{margin-top:10px;font-size:12.5px;color:#d4b46a;letter-spacing:1px;line-height:1.7}
 .verdict .vtao span{color:var(--dim);font-size:10.5px}
 .bayes-chain{line-height:2}
@@ -196,7 +202,8 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   .tmpl-btn{min-height:40px}
   details summary{min-height:44px;padding:12px;display:flex;align-items:center}
   .ev-grid{grid-template-columns:1fr}
-  .verdict .vtitle{font-size:28px}
+  .verdict .vjudge{font-size:24px;letter-spacing:5px}
+  .verdict .vjudge~.vtitle{font-size:18px}
 }
 @media(min-width:561px){
   textarea,input[type=text],input[type=date],input[type=number]{font-size:14px}
@@ -238,27 +245,29 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <div class="progress-rail" id="prail" style="display:none"><span id="prail-txt">待機</span><span id="prail-time"></span></div>
 
 <div class="risk-grid">
-  <div class="unit" id="u-ollama">
-    <div class="uname">OLLAMA·LOCAL</div>
-    <div class="urole" id="r-ollama"></div>
-    <div class="ustat" id="s-ollama">待機</div>
-    <div class="uprob" id="p-ollama"></div>
+  <div class="unit" id="u-gambler">
+    <div class="uname">GAMBLER·1</div>
+    <div class="urole">慾望 — 機會 / 上行 / 選擇權</div>
+    <div class="ustat" id="s-gambler">待機</div>
+    <div class="uprob" id="p-gambler"></div>
   </div>
-  <div class="unit" id="u-gemini">
-    <div class="uname">GEMINI·CLOUD</div>
-    <div class="urole" id="r-gemini"></div>
-    <div class="ustat" id="s-gemini">待機</div>
-    <div class="uprob" id="p-gemini"></div>
+  <div class="unit" id="u-sentinel">
+    <div class="uname">SENTINEL·2</div>
+    <div class="urole">恐懼 — 防禦 / 絆線 / 最壞情境</div>
+    <div class="ustat" id="s-sentinel">待機</div>
+    <div class="uprob" id="p-sentinel"></div>
   </div>
-  <div class="unit" id="u-claude">
-    <div class="uname">CLAUDE·CLOUD</div>
-    <div class="urole" id="r-claude"></div>
-    <div class="ustat" id="s-claude">待機</div>
-    <div class="uprob" id="p-claude"></div>
+  <div class="unit" id="u-arbiter">
+    <div class="uname">ARBITER·3</div>
+    <div class="urole">理性 — 基準率 / 貝氏 / 期望值</div>
+    <div class="ustat" id="s-arbiter">待機</div>
+    <div class="uprob" id="p-arbiter"></div>
   </div>
 </div>
 
 <div class="verdict" id="verdict">
+  <div class="vjudge" id="vjudge"></div>
+  <div class="vvotes" id="vvotes"></div>
   <div class="vtitle" id="vtitle"></div>
   <div class="vsub" id="vsub"></div>
   <div class="valert" id="valert"></div>
@@ -271,7 +280,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </div>
 
 <div class="matrix-box" id="matrix-box" style="display:none">
-  <div class="mtitle">風險矩陣 / RISK MATRIX　★=聚合定位　O/G/C=各引擎</div>
+  <div class="mtitle">風險矩陣 / RISK MATRIX　★=聚合定位　G/S/A=慾望/恐懼/理性腦</div>
   <div class="matrix" id="matrix"></div>
   <div style="max-width:440px;margin:4px auto 0;display:flex;justify-content:space-between">
     <span style="font-size:9px;color:var(--dim)">↑ 影響嚴重度</span>
@@ -285,7 +294,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <div class="inbox">
   <div id="rev-banner" style="display:none">貝氏重估 <b id="rev-no"></b> — 在背景末尾補上新證據，再按開始預測（同案號覆寫，保留修正軌跡）<button onclick="cancelRevise()">取消</button></div>
-  <label>參戰引擎 / ENGINES（可單選、可多選——多引擎才有交叉校準）</label>
+  <label>算力引擎 / ENGINES（三腦固定參戰；引擎可單選多選，會輪流分派給三腦）</label>
   <div class="eng-row">
     <button class="eng-btn" id="eng-ollama" onclick="toggleEngine('ollama')">OLLAMA<small>本機 · 免費</small></button>
     <button class="eng-btn" id="eng-gemini" onclick="toggleEngine('gemini')">GEMINI<small>雲端 · 需橋接</small></button>
@@ -328,24 +337,6 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div id="board"></div>
 </details>
 
-<details id="playbook-box">
-  <summary>決策術參考 / NASA PLAYBOOK</summary>
-  <div class="body" style="padding:10px 12px 14px">
-    <div class="sec">NASA RIDM 風險知情決策三部曲（SP-2010-576 手冊）</div>
-    <div>① 定義績效指標＋列出備選方案 → ② 對各方案做風險分析 → ③ 風險知情的協商裁決。重點是「知情取捨」而非「風險最小」。本頁＝第②步的機率引擎，MAGI 審議＝第③步的裁決庭，兩個分頁合體就是完整 RIDM。</div>
-    <div class="sec">飛行規則 FLIGHT RULES（絆線）</div>
-    <div>NASA 起飛前就寫好數千條「若出現 X → 立刻做 Y」，高壓下不靠臨場意志力。每筆預測明細裡的「絆線」就是你的飛行規則——事先寫好觸發條件，超過閾值自動行動，人不在場系統也穩。</div>
-    <div class="sec">GO / NO-GO 表決</div>
-    <div>發射前逐一輪詢子系統負責人，任何一個 NO-GO 就停。MAGI 特級議案的一票否決同源；本頁的引擎分歧警報是它的機率版——分歧本身就是 NO-GO 訊號。</div>
-    <div class="sec">貝氏更新要訣（超級預測員實證）</div>
-    <div>先驗＝同類事件的基準率，別從印象出發；新證據來就「小幅、頻繁」修正，勝過大幅擺動；預測必須留底對答案（Brier 計分板），校準是練出來的不是天生的。待判定案用「＋新證據重估」按鈕做正式的貝氏修正，修正軌跡會留在記錄上。</div>
-    <div class="sec">綜觀效應 OVERVIEW EFFECT</div>
-    <div>太空人從軌道看地球的認知轉變：整體浮現、邊界消失、瑣事縮小。決策版＝每筆預測都拉到十年高度問一次「這件事真正的份量」，防止在小風險上過度消耗、在大風險上視而不見。</div>
-    <div class="sec">道德經 × 風險管理對照</div>
-    <div>為之於未有，治之於未亂（防患未然）｜圖難於其易，為大於其細（拆解入手）｜慎終如始，則無敗事（收尾謹慎）｜知不知，上（承認不確定是上策）｜飄風不終朝，驟雨不終日（極端會回歸均值）｜知止不殆（設好停損就不危險）。聚合判定下方的章句，由系統依結果特徵自動對應。</div>
-  </div>
-</details>
-
 <details id="history-box">
   <summary>預測記錄 / FORECAST LOG</summary>
   <div class="hist-filter">
@@ -374,7 +365,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <details id="settings">
   <summary>系統設定 / CONFIG</summary>
   <div class="settings-grid" id="cfg-grid"></div>
-  <div style="padding:0 12px 12px;font-size:10px;color:var(--dim);line-height:1.6">三引擎並行呼叫、互不影響：斷線的引擎自動跳過，有幾個算幾個。Ollama 需本機常駐；Gemini 需本機橋接 server；Claude 走 Cloudflare Workers，手機/外出也能用。</div>
+  <div style="padding:0 12px 12px;font-size:10px;color:var(--dim);line-height:1.6">決策結構固定為三個人性腦（GAMBLER 慾望／SENTINEL 恐懼／ARBITER 理性），引擎只是算力：選一個引擎＝三腦同算力跑三次（人格仍不同）；選多個＝輪流分派、跨模型交叉校準。斷線的腦自動跳過，有幾票算幾票。Ollama 需本機常駐；Gemini 需本機橋接；Claude 走 Cloudflare Workers，手機/外出可用。</div>
 </details>
 
 <footer>NERV RISK DIVISION — PROBABILITY IS NOT FATE.</footer>
@@ -437,19 +428,28 @@ function toggleEngine(k){
 function renderEngineState(){
   ENGINE_KEYS.forEach(k=>{
     $("eng-"+k).classList.toggle("on", !!ACTIVE[k]);
-    if(ACTIVE[k]){
-      if($("u-"+k).classList.contains("off")) setUnit(k, "", "待機");
-    }else{
-      setUnit(k, "off", "停用");
-    }
   });
 }
 
-const RISK_SYS = `你是 MAGI 風險預測系統的獨立預測單元，使用 NASA RIDM 決策分析＋貝氏推理評估命題。推理程序：
-1. 貝氏：先定「先驗」＝同類事件的歷史基準率（不可忽略基準率），再逐條列本案證據往上或往下修正，得出後驗機率。頻繁小幅修正優於大幅擺動，90% 信賴區間寧可寬、不可窄（對抗過度自信與錨定）。
+// ━━ 三個人性大腦（決策結構固定三票；引擎只是底層算力，由參戰引擎輪流分派）━━
+// NASA PLAYBOOK（RIDM/飛行規則/GO-NO-GO/超級預測員/綜觀效應/道德經）不再是介面上的說明文，
+// 而是拆進三腦的底層人格：慾望腦拿綜觀與選擇權、恐懼腦拿飛行規則與premortem、理性腦拿貝氏與校準。
+const BRAINS = [
+  { id:"gambler", name:"GAMBLER·1", role:"慾望 — 機會 / 上行 / 選擇權", temp:0.7, flavor:
+`你是 GAMBLER——人性中的慾望與機會之腦。你天生看上行：機會成本、錯過的代價、不對稱報酬（下檔有限而上檔大的結構）。你的天職是對抗全隊的過度保守與損失趨避——沒人替機會說話時，機會就死了。你的武器是綜觀效應：像太空人從軌道看地球，拉到十年高度看這件事真正的份量，瑣事縮小、系統浮現、機會的全貌才看得見。你信奉道德經「柔弱勝剛強」（保留彈性勝過硬扛）與「圖難於其易，為大於其細」（難事從易處入手）。但你必須誠實：機率是機率，不准因為喜歡這個機會就灌水。` },
+  { id:"sentinel", name:"SENTINEL·2", role:"恐懼 — 防禦 / 絆線 / 最壞情境", temp:0.4, flavor:
+`你是 SENTINEL——人性中的恐懼與防禦之腦。你天生看下行：先做 premortem（假設半年後這件事已經失敗，回推最可能的死因），把最壞情境寫得具體，不可逆的損失在你眼中優先於一切期望值。你的天職是對抗全隊的過度自信與樂觀偏誤。你的武器是 NASA 飛行規則：起飛前就寫好「若出現 X → 立刻做 Y」，絆線必須具體可觸發（盡量含日期或數字閾值），高壓下不靠臨場意志力。你信奉道德經「為之於未有，治之於未亂」（在未發生前處理）、「慎終如始」（收尾如開頭謹慎）、「知止不殆」（設好停損就不危險）。但你不准放大恐懼：低機率就是低機率，不因害怕灌水。` },
+  { id:"arbiter", name:"ARBITER·3", role:"理性 — 基準率 / 貝氏 / 期望值", temp:0.15, flavor:
+`你是 ARBITER——人性中的理性與校準之腦。你只認數據與程序：先驗必須從同類事件的歷史基準率出發（超級預測員鐵律：從統計出發，不從印象出發）；新證據來就小幅、頻繁修正，勝過大幅擺動；期望值與 GO/NO-GO 邏輯是你的裁尺——分歧本身就是訊號。你的天職是給全隊一個去情緒的錨，兩邊都不站。你信奉道德經「知不知，上」（承認不知道是上策）與「飄風不終朝，驟雨不終日」（極端會回歸均值，機率貼近 0 或 100 先懷疑過度自信）。你的信賴區間必須誠實反映不確定性，寧寬勿窄。` }
+];
+const BRAIN_MARK = { gambler:"G", sentinel:"S", arbiter:"A" };
+const BRAIN_LABEL = { gambler:"GAMBLER", sentinel:"SENTINEL", arbiter:"ARBITER", ollama:"OLLAMA", gemini:"GEMINI", claude:"CLAUDE" };
+
+const RISK_PROC = `你是 MAGI RISK 風險預測系統的獨立預測單元之一，與另外兩個不同人格的大腦並行推算、事後表決，所以你只需要忠於自己的視角，不必面面俱到。共同推理程序（NASA RIDM＋貝氏）：
+1. 貝氏：先定「先驗」＝同類事件的歷史基準率，再逐條列本案證據往上或往下修正，得出後驗機率。
 2. 因果：區分相關與因果，寫出「原因 → 機制 → 結果」因果鏈，並指出鏈上最值得介入的一個節點（干預點）。
-3. NASA 飛行規則：事前寫好絆線——「若出現某訊號 → 立刻採取某行動」，讓決策在壓力下不靠臨場意志力。
-4. 綜觀效應：像太空人看地球一樣拉高拉遠，一句話說出這件事放在提問者整體人生／事業版圖的真實份量。
+3. 絆線：事前寫好「若出現某訊號 → 立刻採取某行動」。
+4. 綜觀：拉高拉遠一句話，說出這件事在提問者整體人生／事業版圖的真實份量。
 只輸出純 JSON 物件，不得有任何其他文字：
 {"prior":整數0-100（先驗：同類事件基準率）,
 "updates":[{"e":"證據一句話","dir":"↑或↓"}]（最多3條，往上或往下修正機率的關鍵證據）,
@@ -602,31 +602,45 @@ function sanitizeForecast(v){
   };
 }
 
-async function forecastUnit(key, q, ctx, deadline){
-  setUnit(key, "thinking", "推算中...");
-  clog(`${key.toUpperCase()} 機率推算開始`);
+async function forecastUnit(brain, engKey, q, ctx, deadline){
+  setUnit(brain.id, "thinking", "推算中...", `<small>via ${engKey.toUpperCase()}</small>`);
+  clog(`${brain.name} 推算開始（via ${engKey.toUpperCase()}）`);
   const today = new Date().toISOString().slice(0,10);
   const messages = [
-    { role:"system", content: RISK_SYS },
+    { role:"system", content: brain.flavor + "\n\n" + RISK_PROC },
     { role:"user", content: `今天日期：${today}\n預測命題：${q}\n判定期限：${deadline||"未指定（依提問脈絡合理推估）"}${ctx?`\n背景補充：${ctx}`:""}` }
   ];
-  const options = { temperature: 0.3, num_predict: 900 };
+  const options = { temperature: brain.temp, num_predict: 900 };
   let v;
   try{
-    v = parseJsonLoose(await callEngine(key, messages, options));
+    v = parseJsonLoose(await callEngine(engKey, messages, options));
   }catch(e){
     if(e.message !== "JSON_PARSE_FAIL") throw e;
-    clog(`${key.toUpperCase()} 輸出格式錯誤，重試一次`, "ln-err");
+    clog(`${brain.name} 輸出格式錯誤，重試一次`, "ln-err");
     const retry = messages.concat([
       { role:"assistant", content: e.raw },
       { role:"user", content: "上面輸出不是合法 JSON，請重新只輸出純 JSON 物件，不要包含任何其他文字。" }
     ]);
-    v = parseJsonLoose(await callEngine(key, retry, options));
+    v = parseJsonLoose(await callEngine(engKey, retry, options));
   }
   const f = sanitizeForecast(v);
-  setUnit(key, "done", "完成", `${f.probability}<small>%（${f.ci_low}–${f.ci_high}）</small>`);
-  clog(`${key.toUpperCase()} 推定：${f.probability}%（90%CI ${f.ci_low}–${f.ci_high}）`, "ln-ok");
-  return { engine:key, ok:true, ...f };
+  setUnit(brain.id, "done", "完成", `${f.probability}<small>%（${f.ci_low}–${f.ci_high}）via ${engKey.toUpperCase()}</small>`);
+  clog(`${brain.name} 推定：${f.probability}%（90%CI ${f.ci_low}–${f.ci_high}）`, "ln-ok");
+  return { brain:brain.id, engine:engKey, ok:true, ...f };
+}
+
+// ━━ 多數決（程式層強制映射，不信 prompt）：後驗≥55=會發生票、≤45=不會票、之間=保留 ━━
+function probVote(p){ return p>=55 ? "會" : p<=45 ? "不會" : "保留"; }
+function decideVotes(oks){
+  const votes = oks.map(f=>({ brain:f.brain||f.engine, v:probVote(f.probability) }));
+  const yes = votes.filter(x=>x.v==="會").length;
+  const no = votes.filter(x=>x.v==="不會").length;
+  let judge, cls;
+  if(yes>no) { judge="會發生"; cls="j-yes"; }
+  else if(no>yes) { judge="不會發生"; cls="j-no"; }
+  else { judge="無法裁定"; cls="j-hold"; }
+  const tally = votes.map(x=>`${BRAIN_MARK[x.brain]||"?"}:${x.v}`).join("　");
+  return { judge, cls, yes, no, hold: votes.length-yes-no, tally };
 }
 
 // ━━ 聚合 ━━
@@ -648,16 +662,21 @@ function aggregate(oks){
 
 function zoneLabel(z){ return z==="high"?"高風險區":z==="mid"?"中風險區":"低風險區"; }
 
-function renderVerdict(agg){
+function renderVerdict(agg, jd){
   const v = $("verdict");
   v.className = "verdict show zone-"+agg.zone;
+  if(jd){
+    $("vjudge").className = "vjudge "+jd.cls;
+    $("vjudge").textContent = jd.judge;
+    $("vvotes").textContent = `三腦表決　${jd.tally}`;
+  }
   $("vtitle").textContent = `${agg.median}%`;
-  $("vsub").innerHTML = `${agg.n===1?"單引擎推定":agg.n+" 引擎聚合中位數"} ｜ ${agg.n>1?`引擎區間 ${agg.lo}%–${agg.hi}% ｜ `:""}${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
+  $("vsub").innerHTML = `${agg.n} 腦聚合中位數 ｜ ${agg.n>1?`區間 ${agg.lo}%–${agg.hi}% ｜ `:""}${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
   const a = $("valert");
-  if(agg.n === 1){ a.style.color = "var(--dim)"; a.textContent = `單引擎模式 — 無跨模型交叉校準，重要決策建議多開引擎`; }
-  else if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 賢人重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
-  else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 賢人意見分歧（差距 ${agg.spread} 點）— 建議看各引擎理由找分歧點`; }
-  else { a.style.color = "var(--green)"; a.textContent = `✓ 賢人共識良好（差距 ${agg.spread} 點）`; }
+  if(agg.n === 1){ a.style.color = "var(--dim)"; a.textContent = `僅一腦存活 — 無交叉校準，本次裁定僅供參考`; }
+  else if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 三腦重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
+  else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 三腦意見分歧（差距 ${agg.spread} 點）— 建議看各腦理由找分歧點`; }
+  else { a.style.color = "var(--green)"; a.textContent = `✓ 三腦共識良好（差距 ${agg.spread} 點）`; }
   const tao = laoTzu(agg);
   $("vtao").innerHTML = `道德經曰「${tao.t}」<span>— ${tao.w}</span>`;
   const bar = $("rangebar");
@@ -682,7 +701,7 @@ function renderMatrix(agg, oks){
       cell.className = "mcell " + (sev>=15?"z4":sev>=8?"z3":sev>=4?"z2":"z1");
       const marks = [];
       if(agg.likelihood===lik && agg.impact===imp) marks.push('<span class="agg">★</span>');
-      oks.forEach(f=>{ if(f.likelihood===lik && f.impact===imp) marks.push(`<span class="eng">${ENGINE_MARK[f.engine]}</span>`); });
+      oks.forEach(f=>{ if(f.likelihood===lik && f.impact===imp) marks.push(`<span class="eng">${BRAIN_MARK[f.brain]||ENGINE_MARK[f.engine]||"?"}</span>`); });
       cell.innerHTML = marks.join(" ");
       grid.appendChild(cell);
     }
@@ -735,13 +754,17 @@ function laoTzu(agg){
   return { t:"慎終如始，則無敗事。", w:"低風險最容易陰溝翻船——收尾像開頭一樣謹慎" };
 }
 
+function fLabel(f){
+  const b = BRAIN_LABEL[f.brain||f.engine] || String(f.engine||"?").toUpperCase();
+  return f.brain && f.engine ? `${b}（${f.engine.toUpperCase()}）` : b;
+}
 function renderResults(forecasts){
   const box = $("results");
   box.innerHTML = "";
   forecasts.forEach(f=>{
     const d = document.createElement("details");
-    const tag = f.ok ? `<span class="tag t-cyan">${f.probability}%（${f.ci_low}–${f.ci_high}）</span>` : `<span class="tag t-red">離線</span>`;
-    d.innerHTML = `<summary>${f.engine.toUpperCase()} 預測明細 ${tag}</summary>${forecastDetailHtml(f)}`;
+    const tag = f.ok ? `<span class="tag t-cyan">${f.probability}%（${f.ci_low}–${f.ci_high}）· 投「${probVote(f.probability)}」</span>` : `<span class="tag t-red">離線</span>`;
+    d.innerHTML = `<summary>${fLabel(f)} 預測明細 ${tag}</summary>${forecastDetailHtml(f)}`;
     box.appendChild(d);
   });
 }
@@ -796,35 +819,36 @@ async function run(){
   $("verdict").className = "verdict";
   $("matrix-box").style.display = "none";
   $("results").innerHTML = "";
-  renderEngineState();
-  fleet.forEach(k=>setUnit(k,"","待機"));
+  BRAINS.forEach(b=>setUnit(b.id,"","待機"));
   if(!revising){
     predNo++;
     localStorage.setItem("risk_predno", predNo);
   }
   const useNo = revising ? no : predNo;
-  clog(`預測 #${String(useNo).padStart(3,"0")} ${revising?`貝氏重估（第 ${(revising.rev||0)+1} 次修正）`:"受理"} — ${fleet.length===1?"單引擎（"+fleet[0].toUpperCase()+"）":fleet.length+" 引擎並行"}推算`);
+  const assigns = BRAINS.map((b,i)=>fleet[i % fleet.length]);
+  clog(`預測 #${String(useNo).padStart(3,"0")} ${revising?`貝氏重估（第 ${(revising.rev||0)+1} 次修正）`:"受理"} — 三腦並行（算力：${[...new Set(assigns)].map(x=>x.toUpperCase()).join("+")}）`);
   prailStart_();
-  prailSet(fleet.length===1 ? `${fleet[0].toUpperCase()} 推算中...` : `${fleet.length} 引擎並行推算中...`);
+  prailSet("三腦並行推算中...");
   try{
-    const settled = await Promise.allSettled(fleet.map(k=>forecastUnit(k, q, ctx, deadline)));
+    const settled = await Promise.allSettled(BRAINS.map((b,i)=>forecastUnit(b, assigns[i], q, ctx, deadline)));
     const forecasts = settled.map((s,i)=>{
       if(s.status==="fulfilled") return s.value;
       const reason = (s.reason && s.reason.message) || String(s.reason);
-      setUnit(fleet[i], "fail", "離線", "");
-      clog(`${fleet[i].toUpperCase()} 呼叫失敗：${reason}`, "ln-err");
-      return { engine: fleet[i], ok:false, error: reason };
+      setUnit(BRAINS[i].id, "fail", "離線", "");
+      clog(`${BRAINS[i].name} 呼叫失敗：${reason}`, "ln-err");
+      return { brain: BRAINS[i].id, engine: assigns[i], ok:false, error: reason };
     });
     const oks = forecasts.filter(f=>f.ok);
     if(!oks.length){
-      clog("參戰引擎全數離線，本次預測作廢（未計入記錄）", "ln-err");
+      clog("三腦全數離線（算力引擎連不上），本次預測作廢（未計入記錄）", "ln-err");
       if(!revising){ predNo--; localStorage.setItem("risk_predno", predNo); }
       prailStop(); $("go").disabled = false;
       return;
     }
     const agg = aggregate(oks);
     lastAgg = agg;
-    renderVerdict(agg);
+    const jd = decideVotes(oks);
+    renderVerdict(agg, jd);
     renderMatrix(agg, oks);
     renderResults(forecasts);
     recalcEV();
@@ -840,7 +864,7 @@ async function run(){
       clog(`貝氏修正：${pred.prevMedian}% → ${agg.median}%（${d>0?"+":""}${d} 點）`, "ln-ok");
     }
     cancelRevise();
-    clog(`聚合完成：${agg.median}%（${oks.length}/${fleet.length} 引擎），差距 ${agg.spread} 點`, "ln-ok");
+    clog(`裁定：${jd.judge}（會${jd.yes}·不會${jd.no}·保留${jd.hold}）｜聚合 ${agg.median}%（${oks.length}/3 腦），差距 ${agg.spread} 點`, jd.judge==="無法裁定"?"ln-err":"ln-ok");
     $("verdict").scrollIntoView({behavior:"smooth", block:"start"});
   }catch(e){
     clog(`系統異常：${e.message}`, "ln-err");
@@ -909,7 +933,7 @@ function resolvePred(no, outcome){
   if(outcome==="發生" || outcome==="未發生"){
     const occ = outcome==="發生";
     p.scores = {};
-    (p.forecasts||[]).forEach(f=>{ if(f.ok) p.scores[f.engine] = brier(f.probability, occ); });
+    (p.forecasts||[]).forEach(f=>{ if(f.ok) p.scores[f.brain||f.engine] = brier(f.probability, occ); });
   }else{
     p.scores = null;
   }
@@ -930,7 +954,7 @@ function renderReview(){
   preds.sort((a,b)=>(a.deadline||"9999") < (b.deadline||"9999") ? -1 : 1);
   list.innerHTML = preds.map(p=>{
     const overdue = p.deadline && p.deadline <= today;
-    const probs = (p.forecasts||[]).filter(f=>f.ok).map(f=>`${ENGINE_MARK[f.engine]}:${f.probability}%`).join(" ");
+    const probs = (p.forecasts||[]).filter(f=>f.ok).map(f=>`${BRAIN_MARK[f.brain]||ENGINE_MARK[f.engine]||"?"}:${f.probability}%`).join(" ");
     return `<div class="review-item">
       <div class="rq">${catTagHtml(p.q)} #${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
       <div class="rmeta">聚合 ${p.agg?p.agg.median:"?"}%（${probs}）｜ 期限 <span class="${overdue?"overdue":""}">${p.deadline||"未定"}${overdue?" · 已到期":""}</span></div>
@@ -947,22 +971,22 @@ function renderReview(){
 function renderBoard(){
   const board = $("board");
   const resolved = loadPreds().filter(p=>p.scores);
-  if(!resolved.length){ board.innerHTML = `<div class="board-hint">還沒有已判定的預測。累積答案後，這裡會排出三引擎的準度排行。</div>`; return; }
+  if(!resolved.length){ board.innerHTML = `<div class="board-hint">還沒有已判定的預測。累積答案後，這裡會排出三腦的準度排行（舊的引擎維度記錄也會列出）。</div>`; return; }
   const stats = {};
-  ENGINE_KEYS.forEach(k=>stats[k]={n:0,sum:0});
   resolved.forEach(p=>{
     Object.entries(p.scores).forEach(([k,s])=>{
-      if(stats[k] && typeof s==="number"){ stats[k].n++; stats[k].sum+=s; }
+      if(typeof s!=="number") return;
+      if(!stats[k]) stats[k] = {n:0,sum:0};
+      stats[k].n++; stats[k].sum+=s;
     });
   });
-  const rows = ENGINE_KEYS
-    .map(k=>({k, n:stats[k].n, avg: stats[k].n ? stats[k].sum/stats[k].n : null}))
-    .filter(r=>r.n>0)
+  const rows = Object.keys(stats)
+    .map(k=>({k, n:stats[k].n, avg: stats[k].sum/stats[k].n}))
     .sort((a,b)=>a.avg-b.avg);
   board.innerHTML = rows.map((r,i)=>{
     const note = r.avg<0.1 ? "校準優異" : r.avg<0.2 ? "不錯，比丟銅板準" : r.avg<=0.25 ? "跟丟銅板差不多" : "比丟銅板還不準——警戒";
     return `<div class="board-row">
-      <span class="bname">${i===0?"👑 ":""}${r.k.toUpperCase()}</span>
+      <span class="bname">${i===0?"👑 ":""}${BRAIN_LABEL[r.k]||r.k.toUpperCase()}</span>
       <span class="bscore">Brier ${r.avg.toFixed(3)}</span>
       <span style="color:var(--dim)">${r.n} 筆</span>
       <span class="bnote">${note}（基準線 0.250 = 永遠猜 50%）</span>
@@ -990,8 +1014,8 @@ function renderHistory(){
       : `<span class="tag t-yellow">待判定</span>`;
     const scoreLine = p.scores ? `<div class="sec">BRIER 得分</div><div>${Object.entries(p.scores).map(([k,s])=>`${k.toUpperCase()} ${s.toFixed(3)}`).join(" ｜ ")}</div>` : "";
     const fLines = (p.forecasts||[]).map(f=> f.ok
-      ? `<li>${f.engine.toUpperCase()}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
-      : `<li>${f.engine.toUpperCase()}：離線</li>`).join("");
+      ? `<li>${fLabel(f)}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
+      : `<li>${fLabel(f)}：離線</li>`).join("");
     const revTag = p.rev ? `<span class="tag t-cyan">修正×${p.rev}${p.prevMedian!=null?` ${p.prevMedian}→${p.agg?p.agg.median:"?"}%`:""}</span> ` : "";
     return `<details class="hist-item">
       <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}</span></summary>
@@ -1034,12 +1058,11 @@ function renderCfg(){
     d2.innerHTML = `<label>${k.toUpperCase()} MODEL</label>`;
     const i2 = document.createElement("input");
     i2.type = "text"; i2.value = ENG[k].model;
-    i2.onchange = ()=>{ ENG[k].model = i2.value.trim(); saveEngCfg(); renderRoles(); };
+    i2.onchange = ()=>{ ENG[k].model = i2.value.trim(); saveEngCfg(); };
     d2.appendChild(i2);
     grid.appendChild(d1); grid.appendChild(d2);
   });
 }
-function renderRoles(){ ENGINE_KEYS.forEach(k=>{ $("r-"+k).textContent = ENG[k].model; }); }
 
 async function pingEngines(){
   const marks = await Promise.all(ENGINE_KEYS.map(async k=>{
@@ -1060,10 +1083,9 @@ function boot(){
   $("hist-cat").onchange = renderHistory;
   $("hist-status").onchange = renderHistory;
   renderCfg();
-  renderRoles();
   renderEngineState();
-  clog("MAGI RISK DIVISION 起動 — 機率預測部門 · NASA 決策分析程序");
-  clog(`引擎編成：${activeKeys().map(x=>x.toUpperCase()).join(" + ")}（可單選可多選，多引擎才有交叉校準）`);
+  clog("MAGI RISK DIVISION 起動 — 三人性腦（慾望/恐懼/理性）× 多數決 · NASA 決策分析程序");
+  clog(`算力編成：${activeKeys().map(x=>x.toUpperCase()).join(" + ")}（三腦輪流分派；多引擎=每腦不同算力）`);
   renderAllLists();
   pingEngines();
   syncPreds();
