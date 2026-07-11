@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050508">
+<title>MAGI RISK — 風險預測部門</title>
+<style>
+:root{
+  --bg:#050508;
+  --panel:#0d0d14;
+  --orange:#ff7b00;
+  --orange-dim:#a34f00;
+  --green:#33ff77;
+  --red:#ff3344;
+  --yellow:#ffcc33;
+  --cyan:#38bdf8;
+  --text:#e8e0d0;
+  --dim:#7a7468;
+  --mono:"SF Mono","JetBrains Mono","Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(56,189,248,.012) 3px,rgba(56,189,248,.012) 4px)}
+.wrap{max-width:860px;margin:0 auto}
+header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+header h1{font-size:18px;color:var(--cyan);letter-spacing:4px}
+header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
+header .sub a{color:var(--orange);text-decoration:none}
+.hstat{font-size:10px;color:var(--dim);text-align:right;line-height:1.6;letter-spacing:1px}
+.hstat .on{color:var(--green)}
+.hstat .off{color:var(--red)}
+.progress-rail{border:1px solid var(--orange-dim);background:var(--panel);padding:7px 12px;margin:14px 0 0;font-size:11px;color:var(--cyan);letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;gap:8px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+#prail-txt{animation:blink 1.2s steps(2) infinite}
+.progress-rail #prail-time{color:var(--dim);font-size:10px;flex-shrink:0}
+@keyframes blink{50%{opacity:.25}}
+
+.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.unit{border:2px solid var(--orange-dim);background:var(--panel);padding:10px 12px;min-height:104px;transition:border-color .3s,box-shadow .3s;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.unit .uname{font-size:13px;font-weight:bold;color:var(--orange);letter-spacing:2px}
+.unit .urole{font-size:9px;color:var(--dim);margin-top:2px;word-break:break-all}
+.unit .ustat{margin-top:8px;font-size:12px;letter-spacing:2px;min-height:16px}
+.unit .uprob{font-size:24px;margin-top:2px;min-height:30px;color:var(--cyan);letter-spacing:1px}
+.unit .uprob small{font-size:10px;color:var(--dim);letter-spacing:0}
+.unit.thinking{border-color:var(--cyan);box-shadow:0 0 18px rgba(56,189,248,.2)}
+.unit.thinking .ustat{color:var(--cyan);animation:blink 1s steps(2) infinite}
+.unit.done{border-color:var(--green)}
+.unit.done .ustat{color:var(--green)}
+.unit.fail{border-color:var(--red)}
+.unit.fail .ustat{color:var(--red)}
+
+.console{border:1px solid #222;background:#07070c;padding:8px 12px;font-size:11px;color:var(--dim);height:74px;overflow-y:auto;line-height:1.7;margin-bottom:14px}
+.console .ln-sys{color:var(--orange-dim)}
+.console .ln-ok{color:var(--green)}
+.console .ln-err{color:var(--red)}
+
+.inbox{border:1px solid var(--orange-dim);padding:14px;margin-bottom:14px}
+.inbox label{font-size:11px;color:var(--cyan);letter-spacing:2px;display:block;margin-bottom:6px}
+textarea,input[type=text],input[type=date],input[type=number]{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:16px;padding:10px;resize:vertical}
+textarea:focus,input:focus{outline:none;border-color:var(--cyan)}
+#q{min-height:64px}
+#ctx{min-height:40px;margin-top:8px}
+.tmpl-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tmpl-btn{flex:1;min-width:90px;background:none;border:1px solid var(--orange-dim);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:6px 4px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:transform .08s ease,opacity .08s ease,border-color .2s,color .2s}
+.tmpl-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.tmpl-btn:active{transform:scale(.97);opacity:.85}
+.dl-row{display:flex;gap:8px;margin:8px 0 12px;align-items:center;flex-wrap:wrap}
+.dl-row label{margin:0;flex-shrink:0}
+.dl-row input{flex:1;min-width:150px}
+#go{width:100%;background:var(--cyan);border:none;color:#000;font-family:var(--mono);font-size:15px;font-weight:bold;letter-spacing:4px;padding:12px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));transition:transform .08s ease,opacity .08s ease}
+#go:disabled{background:#123240;color:#566;cursor:not-allowed}
+#go:active{transform:scale(.97);opacity:.85}
+button:focus-visible,details summary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.verdict{display:none;border:2px solid;padding:16px;text-align:center;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+.verdict.show{display:block}
+.verdict .vtitle{font-size:34px;font-weight:bold;letter-spacing:6px}
+.verdict .vsub{font-size:11px;margin-top:6px;color:var(--dim);line-height:1.8}
+.verdict .valert{font-size:12px;margin-top:8px;letter-spacing:1px}
+.verdict.zone-low{border-color:var(--green);color:var(--green);background:rgba(51,255,119,.05)}
+.verdict.zone-mid{border-color:var(--yellow);color:var(--yellow);background:rgba(255,204,51,.05)}
+.verdict.zone-high{border-color:var(--red);color:var(--red);background:rgba(255,51,68,.05)}
+
+.rangebar{position:relative;height:14px;background:#0a0a10;border:1px solid #333;margin:12px auto 0;max-width:420px}
+.rangebar .band{position:absolute;top:0;bottom:0;background:rgba(56,189,248,.25)}
+.rangebar .pin{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--cyan)}
+.rangebar .tick{position:absolute;top:100%;font-size:9px;color:var(--dim);transform:translateX(-50%);margin-top:2px}
+
+.matrix-box{border:1px solid var(--orange-dim);background:var(--panel);padding:14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.matrix-box .mtitle{font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:10px}
+.matrix{display:grid;grid-template-columns:18px repeat(5,1fr);gap:3px;max-width:440px;margin:0 auto}
+.mcell{aspect-ratio:1.6;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:1px;border:1px solid #1c1c26;color:var(--text)}
+.mlab{font-size:9px;color:var(--dim);display:flex;align-items:center;justify-content:center;border:none}
+.maxis{grid-column:2 / span 5;text-align:center;font-size:9px;color:var(--dim);margin-top:4px}
+.z1{background:rgba(51,255,119,.10)}
+.z2{background:rgba(255,204,51,.12)}
+.z3{background:rgba(255,123,0,.16)}
+.z4{background:rgba(255,51,68,.20)}
+.mcell .agg{color:var(--cyan);font-weight:bold}
+.mcell .eng{color:var(--dim);font-size:10px}
+
+details{border:1px solid #2a2a33;margin-bottom:8px;background:var(--panel)}
+details summary{cursor:pointer;padding:10px 12px;font-size:12px;letter-spacing:1px;list-style:none;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▸";color:var(--dim)}
+details[open] summary::after{content:"▾"}
+details summary:active{background:rgba(56,189,248,.10)}
+details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--text)}
+.body .sec{margin-top:8px;color:var(--dim);font-size:11px;letter-spacing:1px}
+.body ul{padding-left:18px;margin-top:4px}
+.tag{font-size:11px;padding:1px 8px;border:1px solid;white-space:nowrap}
+.tag.t-cyan{color:var(--cyan);border-color:var(--cyan)}
+.tag.t-green{color:var(--green);border-color:var(--green)}
+.tag.t-red{color:var(--red);border-color:var(--red)}
+.tag.t-yellow{color:var(--yellow);border-color:var(--yellow)}
+.tag.t-dim{color:var(--dim);border-color:#444}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
+.settings-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 12px 8px}
+.ev-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
+.ev-out{margin:0 12px 12px;padding:10px 12px;border-left:3px solid var(--cyan);font-size:13px;line-height:1.8;color:var(--yellow)}
+
+.review-item{border-bottom:1px solid #222;padding:10px 12px;font-size:11px;color:var(--dim)}
+.review-item .rq{color:var(--text);margin-bottom:4px;font-size:12px;line-height:1.6}
+.review-item .rmeta{font-size:10px;line-height:1.6;margin-bottom:8px}
+.review-item .overdue{color:var(--red)}
+.review-btns{display:flex;gap:8px;flex-wrap:wrap}
+.review-btns button{flex:1;min-width:90px;background:none;border:1px solid var(--orange-dim);color:var(--orange);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px;cursor:pointer;min-height:36px}
+.review-btns .rb-true{border-color:var(--green);color:var(--green)}
+.review-btns .rb-false{border-color:var(--red);color:var(--red)}
+.review-btns .rb-na{border-color:#444;color:var(--dim)}
+
+.board-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #222;padding:9px 12px;font-size:12px;align-items:center;flex-wrap:wrap}
+.board-row .bname{color:var(--orange);letter-spacing:1px}
+.board-row .bscore{color:var(--cyan)}
+.board-row .bnote{color:var(--dim);font-size:10px;width:100%}
+.board-hint{padding:8px 12px;font-size:10px;color:var(--dim);line-height:1.7}
+
+.hist-item{border-bottom:1px solid #222;padding:0}
+.hist-item summary{font-size:11px;color:var(--dim)}
+.hist-item summary b{color:var(--text);font-weight:normal}
+.hist-item .body{font-size:12px}
+
+footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
+
+#lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(56,189,248,.012) 3px,rgba(56,189,248,.012) 4px)}
+#lockscreen.hide{display:none}
+.lockbox{width:100%;max-width:380px;border:2px solid var(--orange-dim);background:var(--panel);padding:22px 20px;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.lockbox h2{font-size:15px;color:var(--cyan);letter-spacing:5px;text-align:center;margin-bottom:4px}
+.lockbox .lsub{font-size:10px;color:var(--dim);letter-spacing:2px;text-align:center;margin-bottom:18px}
+.lockbox label{font-size:11px;color:var(--cyan);letter-spacing:2px;display:block;margin-bottom:6px}
+#lock-pass{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:15px;padding:10px;letter-spacing:2px}
+#lock-pass:focus{outline:none;border-color:var(--cyan)}
+.lock-trust{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:10px;color:var(--dim);line-height:1.6}
+.lock-trust input{margin-top:2px}
+#lock-go{width:100%;background:var(--cyan);border:none;color:#000;font-family:var(--mono);font-size:14px;font-weight:bold;letter-spacing:3px;padding:11px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+#lock-err{color:var(--red);font-size:11px;margin-top:10px;min-height:14px;letter-spacing:1px}
+
+@media(max-width:560px){
+  .risk-grid{grid-template-columns:1fr}
+  .unit{min-height:0}
+  header h1{font-size:15px}
+  #go{min-height:48px;padding:14px 12px}
+  .tmpl-btn{min-height:40px}
+  details summary{min-height:44px;padding:12px;display:flex;align-items:center}
+  .ev-grid{grid-template-columns:1fr}
+  .verdict .vtitle{font-size:28px}
+}
+@media(min-width:561px){
+  textarea,input[type=text],input[type=date],input[type=number]{font-size:14px}
+}
+</style>
+</head>
+<body>
+
+<div id="lockscreen">
+  <div class="lockbox">
+    <h2>MAGI RISK ACCESS</h2>
+    <div class="lsub">通行碼驗證 · 同 MAGI 主系統通行碼</div>
+    <label>PASSPHRASE</label>
+    <input type="password" id="lock-pass" autocomplete="off" spellcheck="false">
+    <div class="lock-trust">
+      <input type="checkbox" id="lock-trust">
+      <label for="lock-trust" style="margin:0;color:var(--dim);font-size:10px;letter-spacing:0;display:inline">信任此裝置（下次免輸入通行碼）— 僅方便設計，不是額外防護，公用電腦請勿勾選</label>
+    </div>
+    <button id="lock-go">解鎖 UNLOCK</button>
+    <div id="lock-err"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>MAGI RISK</h1>
+    <div class="sub">風險預測部門 · PROBABILITY FORECAST DIVISION ｜ <a href="index.html">← 三賢人審議</a></div>
+  </div>
+  <div class="hstat" id="hstat">ENGINES: 確認中...</div>
+</header>
+
+<div class="progress-rail" id="prail" style="display:none"><span id="prail-txt">待機</span><span id="prail-time"></span></div>
+
+<div class="risk-grid">
+  <div class="unit" id="u-ollama">
+    <div class="uname">OLLAMA·LOCAL</div>
+    <div class="urole" id="r-ollama"></div>
+    <div class="ustat" id="s-ollama">待機</div>
+    <div class="uprob" id="p-ollama"></div>
+  </div>
+  <div class="unit" id="u-gemini">
+    <div class="uname">GEMINI·CLOUD</div>
+    <div class="urole" id="r-gemini"></div>
+    <div class="ustat" id="s-gemini">待機</div>
+    <div class="uprob" id="p-gemini"></div>
+  </div>
+  <div class="unit" id="u-claude">
+    <div class="uname">CLAUDE·CLOUD</div>
+    <div class="urole" id="r-claude"></div>
+    <div class="ustat" id="s-claude">待機</div>
+    <div class="uprob" id="p-claude"></div>
+  </div>
+</div>
+
+<div class="verdict" id="verdict">
+  <div class="vtitle" id="vtitle"></div>
+  <div class="vsub" id="vsub"></div>
+  <div class="valert" id="valert"></div>
+  <div class="rangebar" id="rangebar" style="display:none">
+    <div class="band" id="rb-band"></div>
+    <div class="pin" id="rb-pin"></div>
+    <span class="tick" style="left:0%">0</span><span class="tick" style="left:50%">50</span><span class="tick" style="left:100%">100</span>
+  </div>
+</div>
+
+<div class="matrix-box" id="matrix-box" style="display:none">
+  <div class="mtitle">風險矩陣 / RISK MATRIX　★=聚合定位　O/G/C=各引擎</div>
+  <div class="matrix" id="matrix"></div>
+  <div style="max-width:440px;margin:4px auto 0;display:flex;justify-content:space-between">
+    <span style="font-size:9px;color:var(--dim)">↑ 影響嚴重度</span>
+    <span style="font-size:9px;color:var(--dim)">發生可能性 →</span>
+  </div>
+</div>
+
+<div id="results"></div>
+
+<div class="console" id="console"></div>
+
+<div class="inbox">
+  <label>預測命題 / FORECAST PROPOSAL</label>
+  <div class="tmpl-row">
+    <button class="tmpl-btn" onclick="useTemplate('done')">如期完成？</button>
+    <button class="tmpl-btn" onclick="useTemplate('over')">會超支？</button>
+    <button class="tmpl-btn" onclick="useTemplate('fail')">會出事？</button>
+  </div>
+  <textarea id="q" placeholder="輸入一個可驗證的事件，例：海灘旺季開始前，新排班系統能不能上線？"></textarea>
+  <textarea id="ctx" placeholder="背景補充（選填）：預算、人力、目前進度、歷史經驗..."></textarea>
+  <div class="dl-row">
+    <label>判定期限</label>
+    <input type="date" id="deadline">
+  </div>
+  <button id="go">開始預測 / FORECAST</button>
+</div>
+
+<details id="ev-box">
+  <summary>期望值試算 / EXPECTED VALUE <span class="tag t-dim" id="ev-ptag">用最新聚合機率</span></summary>
+  <div class="ev-grid">
+    <div><label>若發生的損失（元）</label><input type="number" id="ev-loss" placeholder="100000"></div>
+    <div><label>對策成本（元）</label><input type="number" id="ev-cost" placeholder="20000"></div>
+    <div><label>採取對策後殘餘機率 %</label><input type="number" id="ev-resid" placeholder="0" min="0" max="100"></div>
+  </div>
+  <div class="ev-out" id="ev-out">先跑一次預測，或直接輸入數字（會用最近一次聚合機率計算）。</div>
+</details>
+
+<details id="review-box">
+  <summary>到期回顧 · 對答案 / GRADE <span class="tag t-yellow" id="review-count" style="display:none"></span></summary>
+  <div class="board-hint">預測要對過答案才算數。判定「發生／未發生」後，系統會替每個引擎算 Brier 分數（越低越準）。</div>
+  <div id="review-list"></div>
+</details>
+
+<details id="board-box">
+  <summary>引擎校準計分板 / CALIBRATION</summary>
+  <div class="board-hint">Brier 分數 =（預測機率 − 實際結果）²，0 最準、0.25 = 跟丟銅板一樣、1 最離譜。累積夠多筆就知道哪個引擎過度自信。</div>
+  <div id="board"></div>
+</details>
+
+<details id="history-box">
+  <summary>預測記錄 / FORECAST LOG</summary>
+  <div id="hist"></div>
+</details>
+
+<details id="settings">
+  <summary>系統設定 / CONFIG</summary>
+  <div class="settings-grid" id="cfg-grid"></div>
+  <div style="padding:0 12px 12px;font-size:10px;color:var(--dim);line-height:1.6">三引擎並行呼叫、互不影響：斷線的引擎自動跳過，有幾個算幾個。Ollama 需本機常駐；Gemini 需本機橋接 server；Claude 走 Cloudflare Workers，手機/外出也能用。</div>
+</details>
+
+<footer>NERV RISK DIVISION — PROBABILITY IS NOT FATE.</footer>
+</div>
+
+<script>
+const VAULT = {
+  salt: "HZCjnMhAaUn1KjvJ6gmNxQ==",
+  iv: "1gA4DVCCPfcoa5T0",
+  iterations: 250000,
+  cipher: "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"
+};
+
+const SUPABASE_URL = "https://gaouowojtmxwgpcetzmo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdhb3Vvd29qdG14d2dwY2V0em1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODU2NjMsImV4cCI6MjA5OTA2MTY2M30.DCTE07J4A5U1seQh_ZP3QAwKjgOHBFxlqz-8BBVOKPw";
+
+let BRIDGE_TOKEN = "";
+let CLAUDE_TOKEN = "";
+let SUPABASE_SECRET = "";
+const CHAT_TIMEOUT_MS = 75000;
+
+const ENGINE_DEFAULTS = {
+  ollama: { url:"http://localhost:11434", model:"qwen2.5:14b" },
+  gemini: { url:"http://localhost:8643", model:"gemini-3.1-flash-lite" },
+  claude: { url:"https://magi-claude-bridge.alex-abc145-2aa.workers.dev", model:"claude-haiku-4-5-20251001" }
+};
+const ENGINE_KEYS = ["ollama","gemini","claude"];
+const ENGINE_MARK = { ollama:"O", gemini:"G", claude:"C" };
+
+function loadEngCfg(){
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem("risk_eng_cfg")||"{}"); }catch(e){}
+  const cfg = {};
+  ENGINE_KEYS.forEach(k=>{
+    cfg[k] = { url: (saved[k]&&saved[k].url)||ENGINE_DEFAULTS[k].url, model: (saved[k]&&saved[k].model)||ENGINE_DEFAULTS[k].model };
+  });
+  return cfg;
+}
+let ENG = loadEngCfg();
+function saveEngCfg(){ localStorage.setItem("risk_eng_cfg", JSON.stringify(ENG)); }
+
+const RISK_SYS = `你是 MAGI 風險預測系統的獨立預測單元，使用 NASA 決策分析方法評估命題。原則：
+1. 先想「同類事件的基準率」再依本案證據調整，不可忽略基準率。
+2. 對抗錨定效應與過度自信：90% 信賴區間寧可寬、不可窄。
+3. 區分可控與不可控因素，機率要反映「按目前狀態不額外干預」的走向。
+只輸出純 JSON 物件，不得有任何其他文字：
+{"probability":整數0-100（事件在期限內發生的機率）,
+"ci_low":整數0-100,"ci_high":整數0-100（90%信賴區間下上界）,
+"scenarios":{"best":{"p":整數,"desc":"一句話樂觀情境"},"base":{"p":整數,"desc":"一句話基準情境"},"worst":{"p":整數,"desc":"一句話悲觀情境"}}（三者p合計約100）,
+"likelihood":整數1-5（發生可能性等級）,"impact":整數1-5（若發生對提問者的影響嚴重度）,
+"key_drivers":["最多3個左右結果的關鍵因子"],
+"biases":["提問者本案最可能踩到的認知偏誤，最多2個，例：錨定效應、過度自信、忽略基準率、月暈效應、從眾效應"],
+"flexibility":"一句話：如何保留彈性、把不確定性變成選擇權",
+"reason":"兩三句核心理由"}`;
+
+function $(id){ return document.getElementById(id); }
+
+function clog(msg, cls){
+  const c = $("console");
+  const d = document.createElement("div");
+  d.className = cls||"ln-sys";
+  d.textContent = `> ${msg}`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+let prailTimer = null, prailStartTs = 0;
+function prailStart_(){
+  $("prail").style.display = "flex";
+  prailStartTs = Date.now();
+  clearInterval(prailTimer);
+  prailTimer = setInterval(()=>{ $("prail-time").textContent = `${Math.floor((Date.now()-prailStartTs)/1000)}s`; }, 500);
+  $("prail-time").textContent = "0s";
+}
+function prailSet(txt){ $("prail-txt").textContent = txt; }
+function prailStop(){ clearInterval(prailTimer); prailTimer = null; $("prail").style.display = "none"; }
+
+function setUnit(key, cls, stat, prob){
+  const u = $("u-"+key);
+  u.className = "unit"+(cls?" "+cls:"");
+  $("s-"+key).textContent = stat;
+  $("p-"+key).innerHTML = prob||"";
+}
+
+// ━━ Supabase（同 MAGI：RPC + p_secret，anon 直查全擋）━━
+async function sbRpc(fnName, args){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args)
+  });
+  if(!r.ok) throw new Error(`SB HTTP ${r.status}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+async function sbSavePred(p){
+  if(!SUPABASE_SECRET) return;
+  try{
+    await sbRpc("risk_save_prediction", { p_secret: SUPABASE_SECRET, p_pred_no: p.no, p_question: p.q||"", p_context: p.ctx||"", p_deadline: p.deadline||null, p_forecasts: p.forecasts, p_aggregate: p.agg });
+  }catch(e){ clog(`雲端存檔失敗（本機記錄不受影響）：${e.message}`, "ln-err"); }
+}
+async function sbResolvePred(no, outcome, scores){
+  if(!SUPABASE_SECRET) return;
+  try{ await sbRpc("risk_resolve_prediction", { p_secret: SUPABASE_SECRET, p_pred_no: no, p_outcome: outcome, p_scores: scores }); }
+  catch(e){ clog(`雲端回填失敗（本機記錄不受影響）：${e.message}`, "ln-err"); }
+}
+async function syncPreds(){
+  if(!SUPABASE_SECRET) return;
+  try{
+    const rows = await sbRpc("risk_load_predictions", { p_secret: SUPABASE_SECRET, p_limit: 100 });
+    if(!Array.isArray(rows) || !rows.length) return;
+    const local = loadPreds();
+    const map = new Map(local.map(p=>[p.no, p]));
+    rows.forEach(r=>{
+      const remote = { no:r.pred_no, q:r.question, ctx:r.context||"", deadline:r.deadline||"", forecasts:r.forecasts||[], agg:r.aggregate||null, outcome:r.outcome||null, scores:r.scores||null, t:Date.parse(r.updated_at||r.created_at)||Date.now() };
+      const mine = map.get(remote.no);
+      if(!mine || (remote.outcome && !mine.outcome)) map.set(remote.no, remote);
+    });
+    const merged = [...map.values()].sort((a,b)=>b.no-a.no).slice(0,100);
+    localStorage.setItem("risk_preds", JSON.stringify(merged));
+    predNo = Math.max(predNo, ...merged.map(p=>p.no));
+    localStorage.setItem("risk_predno", predNo);
+    renderAllLists();
+    clog(`雲端同步完成：${rows.length} 筆`, "ln-ok");
+  }catch(e){ clog(`雲端同步失敗：${e.message}`, "ln-err"); }
+}
+
+// ━━ 引擎呼叫 ━━
+async function callEngine(key, messages, options){
+  const headers = {"Content-Type":"application/json"};
+  if(key === "gemini") headers["X-Magi-Token"] = BRIDGE_TOKEN;
+  else if(key === "claude") headers["X-Magi-Token"] = CLAUDE_TOKEN;
+  const body = { model: ENG[key].model, stream:false, format:"json", options, messages };
+  let r;
+  try{
+    r = await fetch(ENG[key].url+"/api/chat", { method:"POST", headers, body: JSON.stringify(body), signal: AbortSignal.timeout(CHAT_TIMEOUT_MS) });
+  }catch(e){
+    if(e.name==="TimeoutError"||e.name==="AbortError") throw new Error(`請求逾時（${Math.round(CHAT_TIMEOUT_MS/1000)}s）`);
+    throw e;
+  }
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  return j.message.content;
+}
+
+function parseJsonLoose(raw){
+  try{ return JSON.parse(raw); }
+  catch(e){
+    const m = String(raw).match(/\{[\s\S]*\}/);
+    if(m){ try{ return JSON.parse(m[0]); }catch(e2){} }
+    const err = new Error("JSON_PARSE_FAIL");
+    err.raw = raw;
+    throw err;
+  }
+}
+
+function clampInt(v, lo, hi, dflt){
+  const n = parseInt(v);
+  if(isNaN(n)) return dflt;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function sanitizeForecast(v){
+  const p = clampInt(v.probability, 0, 100, 50);
+  let lo = clampInt(v.ci_low, 0, 100, Math.max(0,p-20));
+  let hi = clampInt(v.ci_high, 0, 100, Math.min(100,p+20));
+  const sorted = [lo, p, hi].sort((a,b)=>a-b);
+  lo = sorted[0]; hi = sorted[2];
+  const sc = (v.scenarios && typeof v.scenarios==="object") ? v.scenarios : {};
+  const scn = {};
+  ["best","base","worst"].forEach(k=>{
+    const s = (sc[k] && typeof sc[k]==="object") ? sc[k] : {};
+    scn[k] = { p: clampInt(s.p, 0, 100, 33), desc: String(s.desc||"").slice(0,80) };
+  });
+  return {
+    probability: p, ci_low: lo, ci_high: hi, scenarios: scn,
+    likelihood: clampInt(v.likelihood, 1, 5, 3),
+    impact: clampInt(v.impact, 1, 5, 3),
+    key_drivers: (Array.isArray(v.key_drivers)?v.key_drivers:[]).slice(0,3).map(x=>String(x).slice(0,60)),
+    biases: (Array.isArray(v.biases)?v.biases:[]).slice(0,2).map(x=>String(x).slice(0,60)),
+    flexibility: String(v.flexibility||"").slice(0,150),
+    reason: String(v.reason||"").slice(0,400)
+  };
+}
+
+async function forecastUnit(key, q, ctx, deadline){
+  setUnit(key, "thinking", "推算中...");
+  clog(`${key.toUpperCase()} 機率推算開始`);
+  const today = new Date().toISOString().slice(0,10);
+  const messages = [
+    { role:"system", content: RISK_SYS },
+    { role:"user", content: `今天日期：${today}\n預測命題：${q}\n判定期限：${deadline||"未指定（依提問脈絡合理推估）"}${ctx?`\n背景補充：${ctx}`:""}` }
+  ];
+  const options = { temperature: 0.3, num_predict: 900 };
+  let v;
+  try{
+    v = parseJsonLoose(await callEngine(key, messages, options));
+  }catch(e){
+    if(e.message !== "JSON_PARSE_FAIL") throw e;
+    clog(`${key.toUpperCase()} 輸出格式錯誤，重試一次`, "ln-err");
+    const retry = messages.concat([
+      { role:"assistant", content: e.raw },
+      { role:"user", content: "上面輸出不是合法 JSON，請重新只輸出純 JSON 物件，不要包含任何其他文字。" }
+    ]);
+    v = parseJsonLoose(await callEngine(key, retry, options));
+  }
+  const f = sanitizeForecast(v);
+  setUnit(key, "done", "完成", `${f.probability}<small>%（${f.ci_low}–${f.ci_high}）</small>`);
+  clog(`${key.toUpperCase()} 推定：${f.probability}%（90%CI ${f.ci_low}–${f.ci_high}）`, "ln-ok");
+  return { engine:key, ok:true, ...f };
+}
+
+// ━━ 聚合 ━━
+function median(arr){
+  const s = [...arr].sort((a,b)=>a-b);
+  const m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : Math.round((s[m-1]+s[m])/2);
+}
+function aggregate(oks){
+  const probs = oks.map(f=>f.probability);
+  const med = median(probs);
+  const spread = Math.max(...probs) - Math.min(...probs);
+  const lik = median(oks.map(f=>f.likelihood));
+  const imp = median(oks.map(f=>f.impact));
+  const sev = lik*imp;
+  const zone = sev>=15 ? "high" : sev>=8 ? "mid" : "low";
+  return { median: med, lo: Math.min(...probs), hi: Math.max(...probs), spread, likelihood: lik, impact: imp, zone, n: oks.length };
+}
+
+function zoneLabel(z){ return z==="high"?"高風險區":z==="mid"?"中風險區":"低風險區"; }
+
+function renderVerdict(agg){
+  const v = $("verdict");
+  v.className = "verdict show zone-"+agg.zone;
+  $("vtitle").textContent = `${agg.median}%`;
+  $("vsub").innerHTML = `${agg.n} 引擎聚合中位數 ｜ 引擎區間 ${agg.lo}%–${agg.hi}% ｜ ${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
+  const a = $("valert");
+  if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 賢人重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
+  else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 賢人意見分歧（差距 ${agg.spread} 點）— 建議看各引擎理由找分歧點`; }
+  else { a.style.color = "var(--green)"; a.textContent = `✓ 賢人共識良好（差距 ${agg.spread} 點）`; }
+  const bar = $("rangebar");
+  bar.style.display = "block";
+  $("rb-band").style.left = agg.lo+"%";
+  $("rb-band").style.width = Math.max(1,(agg.hi-agg.lo))+"%";
+  $("rb-pin").style.left = agg.median+"%";
+}
+
+function renderMatrix(agg, oks){
+  $("matrix-box").style.display = "block";
+  const grid = $("matrix");
+  grid.innerHTML = "";
+  for(let imp=5; imp>=1; imp--){
+    const lab = document.createElement("div");
+    lab.className = "mcell mlab";
+    lab.textContent = imp;
+    grid.appendChild(lab);
+    for(let lik=1; lik<=5; lik++){
+      const cell = document.createElement("div");
+      const sev = lik*imp;
+      cell.className = "mcell " + (sev>=15?"z4":sev>=8?"z3":sev>=4?"z2":"z1");
+      const marks = [];
+      if(agg.likelihood===lik && agg.impact===imp) marks.push('<span class="agg">★</span>');
+      oks.forEach(f=>{ if(f.likelihood===lik && f.impact===imp) marks.push(`<span class="eng">${ENGINE_MARK[f.engine]}</span>`); });
+      cell.innerHTML = marks.join(" ");
+      grid.appendChild(cell);
+    }
+  }
+  const axis = document.createElement("div");
+  axis.className = "maxis";
+  axis.textContent = "1　　2　　3　　4　　5";
+  grid.appendChild(axis);
+}
+
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function forecastDetailHtml(f){
+  if(!f.ok) return `<div class="body" style="color:var(--red)">呼叫失敗：${esc(f.error)}</div>`;
+  const sc = f.scenarios;
+  return `<div class="body">
+    <div class="sec">情境分析 SCENARIOS</div>
+    <ul>
+      <li>樂觀 ${sc.best.p}%：${esc(sc.best.desc)}</li>
+      <li>基準 ${sc.base.p}%：${esc(sc.base.desc)}</li>
+      <li>悲觀 ${sc.worst.p}%：${esc(sc.worst.desc)}</li>
+    </ul>
+    <div class="sec">關鍵因子 DRIVERS</div>
+    <ul>${f.key_drivers.map(d=>`<li>${esc(d)}</li>`).join("")}</ul>
+    <div class="sec">偏誤警示 BIAS ALERT</div>
+    <ul>${f.biases.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>
+    <div class="sec">彈性建議 FLEXIBILITY</div>
+    <div>${esc(f.flexibility)}</div>
+    <div class="sec">核心理由 REASON</div>
+    <div>${esc(f.reason)}</div>
+  </div>`;
+}
+
+function renderResults(forecasts){
+  const box = $("results");
+  box.innerHTML = "";
+  forecasts.forEach(f=>{
+    const d = document.createElement("details");
+    const tag = f.ok ? `<span class="tag t-cyan">${f.probability}%（${f.ci_low}–${f.ci_high}）</span>` : `<span class="tag t-red">離線</span>`;
+    d.innerHTML = `<summary>${f.engine.toUpperCase()} 預測明細 ${tag}</summary>${forecastDetailHtml(f)}`;
+    box.appendChild(d);
+  });
+}
+
+// ━━ 本機記錄 ━━
+let predNo = parseInt(localStorage.getItem("risk_predno")||"0");
+let lastAgg = null;
+
+function loadPreds(){
+  try{
+    const arr = JSON.parse(localStorage.getItem("risk_preds")||"[]");
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+function savePred(p){
+  let preds = loadPreds().filter(x=>x.no !== p.no);
+  preds.unshift(p);
+  localStorage.setItem("risk_preds", JSON.stringify(preds.slice(0,100)));
+}
+
+// ━━ 主流程 ━━
+async function run(){
+  const q = $("q").value.trim();
+  if(!q){ clog("預測命題為空", "ln-err"); return; }
+  const ctx = $("ctx").value.trim();
+  const deadline = $("deadline").value;
+  $("go").disabled = true;
+  $("verdict").className = "verdict";
+  $("matrix-box").style.display = "none";
+  $("results").innerHTML = "";
+  ENGINE_KEYS.forEach(k=>setUnit(k,"","待機"));
+  predNo++;
+  localStorage.setItem("risk_predno", predNo);
+  clog(`預測 #${String(predNo).padStart(3,"0")} 受理 — 三引擎並行推算`);
+  prailStart_();
+  prailSet("三引擎並行推算中...");
+  try{
+    const settled = await Promise.allSettled(ENGINE_KEYS.map(k=>forecastUnit(k, q, ctx, deadline)));
+    const forecasts = settled.map((s,i)=>{
+      if(s.status==="fulfilled") return s.value;
+      const reason = (s.reason && s.reason.message) || String(s.reason);
+      setUnit(ENGINE_KEYS[i], "fail", "離線", "");
+      clog(`${ENGINE_KEYS[i].toUpperCase()} 呼叫失敗：${reason}`, "ln-err");
+      return { engine: ENGINE_KEYS[i], ok:false, error: reason };
+    });
+    const oks = forecasts.filter(f=>f.ok);
+    if(!oks.length){
+      clog("三引擎全數離線，本次預測作廢（未計入記錄）", "ln-err");
+      predNo--; localStorage.setItem("risk_predno", predNo);
+      prailStop(); $("go").disabled = false;
+      return;
+    }
+    const agg = aggregate(oks);
+    lastAgg = agg;
+    renderVerdict(agg);
+    renderMatrix(agg, oks);
+    renderResults(forecasts);
+    recalcEV();
+    const pred = { no:predNo, q, ctx, deadline, forecasts, agg, outcome:null, scores:null, t:Date.now() };
+    savePred(pred);
+    sbSavePred(pred);
+    renderAllLists();
+    clog(`聚合完成：${agg.median}%（${oks.length}/3 引擎），差距 ${agg.spread} 點`, "ln-ok");
+    $("verdict").scrollIntoView({behavior:"smooth", block:"start"});
+  }catch(e){
+    clog(`系統異常：${e.message}`, "ln-err");
+  }
+  prailStop();
+  $("go").disabled = false;
+}
+
+// ━━ 期望值試算 ━━
+function fmtMoney(n){ return isFinite(n) ? Math.round(n).toLocaleString("zh-Hant") : "—"; }
+function recalcEV(){
+  const loss = parseFloat($("ev-loss").value);
+  const cost = parseFloat($("ev-cost").value);
+  const resid = Math.max(0, Math.min(100, parseFloat($("ev-resid").value)||0));
+  const preds = loadPreds();
+  const agg = lastAgg || (preds[0] && preds[0].agg);
+  if(!agg){ $("ev-out").textContent = "先跑一次預測，才有聚合機率可以算。"; return; }
+  $("ev-ptag").textContent = `聚合機率 ${agg.median}%`;
+  if(!isFinite(loss) || !isFinite(cost)){ $("ev-out").textContent = `目前聚合機率 ${agg.median}%。填入損失與對策成本，就能比較「扛下去」vs「花錢對策」哪個期望值划算（保險判斷同理）。`; return; }
+  const p = agg.median/100;
+  const evNo = p*loss;
+  const evYes = cost + (resid/100)*loss;
+  const better = evYes < evNo ? "採取對策划算" : evYes > evNo ? "不採取對策划算（自留風險）" : "兩者期望值相同";
+  $("ev-out").innerHTML = `不採取對策：期望損失 = ${agg.median}% × ${fmtMoney(loss)} = <b>${fmtMoney(evNo)}</b> 元<br>採取對策：${fmtMoney(cost)} + ${resid}% × ${fmtMoney(loss)} = <b>${fmtMoney(evYes)}</b> 元<br>→ ${better}（差 ${fmtMoney(Math.abs(evNo-evYes))} 元）。提醒：影響大到承受不起時，期望值不是唯一準則。`;
+}
+
+// ━━ 到期回顧 / 打分 ━━
+function brier(prob, occurred){ return Math.round(Math.pow(prob/100 - (occurred?1:0), 2)*10000)/10000; }
+
+function resolvePred(no, outcome){
+  const preds = loadPreds();
+  const p = preds.find(x=>x.no===no);
+  if(!p) return;
+  p.outcome = outcome;
+  if(outcome==="發生" || outcome==="未發生"){
+    const occ = outcome==="發生";
+    p.scores = {};
+    (p.forecasts||[]).forEach(f=>{ if(f.ok) p.scores[f.engine] = brier(f.probability, occ); });
+  }else{
+    p.scores = null;
+  }
+  p.t = Date.now();
+  localStorage.setItem("risk_preds", JSON.stringify(preds));
+  sbResolvePred(no, outcome, p.scores);
+  clog(`預測 #${String(no).padStart(3,"0")} 判定：${outcome}`, "ln-ok");
+  renderAllLists();
+}
+
+function renderReview(){
+  const list = $("review-list");
+  const preds = loadPreds().filter(p=>!p.outcome);
+  const today = new Date().toISOString().slice(0,10);
+  $("review-count").style.display = preds.length ? "inline" : "none";
+  $("review-count").textContent = `${preds.length} 筆待判定`;
+  if(!preds.length){ list.innerHTML = `<div class="board-hint">沒有待判定的預測。</div>`; return; }
+  preds.sort((a,b)=>(a.deadline||"9999") < (b.deadline||"9999") ? -1 : 1);
+  list.innerHTML = preds.map(p=>{
+    const overdue = p.deadline && p.deadline <= today;
+    const probs = (p.forecasts||[]).filter(f=>f.ok).map(f=>`${ENGINE_MARK[f.engine]}:${f.probability}%`).join(" ");
+    return `<div class="review-item">
+      <div class="rq">#${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
+      <div class="rmeta">聚合 ${p.agg?p.agg.median:"?"}%（${probs}）｜ 期限 <span class="${overdue?"overdue":""}">${p.deadline||"未定"}${overdue?" · 已到期":""}</span></div>
+      <div class="review-btns">
+        <button class="rb-true" onclick="resolvePred(${p.no},'發生')">發生了</button>
+        <button class="rb-false" onclick="resolvePred(${p.no},'未發生')">沒發生</button>
+        <button class="rb-na" onclick="resolvePred(${p.no},'無法判定')">無法判定</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderBoard(){
+  const board = $("board");
+  const resolved = loadPreds().filter(p=>p.scores);
+  if(!resolved.length){ board.innerHTML = `<div class="board-hint">還沒有已判定的預測。累積答案後，這裡會排出三引擎的準度排行。</div>`; return; }
+  const stats = {};
+  ENGINE_KEYS.forEach(k=>stats[k]={n:0,sum:0});
+  resolved.forEach(p=>{
+    Object.entries(p.scores).forEach(([k,s])=>{
+      if(stats[k] && typeof s==="number"){ stats[k].n++; stats[k].sum+=s; }
+    });
+  });
+  const rows = ENGINE_KEYS
+    .map(k=>({k, n:stats[k].n, avg: stats[k].n ? stats[k].sum/stats[k].n : null}))
+    .filter(r=>r.n>0)
+    .sort((a,b)=>a.avg-b.avg);
+  board.innerHTML = rows.map((r,i)=>{
+    const note = r.avg<0.1 ? "校準優異" : r.avg<0.2 ? "不錯，比丟銅板準" : r.avg<=0.25 ? "跟丟銅板差不多" : "比丟銅板還不準——警戒";
+    return `<div class="board-row">
+      <span class="bname">${i===0?"👑 ":""}${r.k.toUpperCase()}</span>
+      <span class="bscore">Brier ${r.avg.toFixed(3)}</span>
+      <span style="color:var(--dim)">${r.n} 筆</span>
+      <span class="bnote">${note}（基準線 0.250 = 永遠猜 50%）</span>
+    </div>`;
+  }).join("");
+}
+
+function renderHistory(){
+  const hist = $("hist");
+  const preds = loadPreds();
+  if(!preds.length){ hist.innerHTML = `<div class="board-hint">尚無預測記錄。</div>`; return; }
+  hist.innerHTML = preds.map(p=>{
+    const tag = p.outcome==="發生" ? `<span class="tag t-green">發生</span>`
+      : p.outcome==="未發生" ? `<span class="tag t-red">未發生</span>`
+      : p.outcome==="無法判定" ? `<span class="tag t-dim">無法判定</span>`
+      : `<span class="tag t-yellow">待判定</span>`;
+    const scoreLine = p.scores ? `<div class="sec">BRIER 得分</div><div>${Object.entries(p.scores).map(([k,s])=>`${k.toUpperCase()} ${s.toFixed(3)}`).join(" ｜ ")}</div>` : "";
+    const fLines = (p.forecasts||[]).map(f=> f.ok
+      ? `<li>${f.engine.toUpperCase()}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
+      : `<li>${f.engine.toUpperCase()}：離線</li>`).join("");
+    return `<details class="hist-item">
+      <summary><b>#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,42))}${p.q.length>42?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${tag}</span></summary>
+      <div class="body">
+        <div class="sec">命題</div><div>${esc(p.q)}</div>
+        ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
+        <div class="sec">期限</div><div>${p.deadline||"未定"}</div>
+        <div class="sec">各引擎</div><ul>${fLines}</ul>
+        ${scoreLine}
+      </div>
+    </details>`;
+  }).join("");
+}
+
+function renderAllLists(){ renderReview(); renderBoard(); renderHistory(); }
+
+// ━━ 模板 / 設定 / 引擎狀態 ━━
+const TEMPLATES = {
+  done: { q:"（專案／工程）能在期限前如期完成上線嗎？", ctx:"目前進度：\n剩餘工項：\n人力狀況：" },
+  over: { q:"（採購／工程）最終花費會超出預算嗎？", ctx:"預算金額：\n目前已花：\n主要不確定項目：" },
+  fail: { q:"（設備／系統／計畫）會在近期內出狀況嗎？", ctx:"目前狀態：\n過去故障頻率：\n最近的異常徵兆：" }
+};
+function useTemplate(k){
+  $("q").value = TEMPLATES[k].q;
+  $("ctx").value = TEMPLATES[k].ctx;
+  $("q").focus();
+}
+
+function renderCfg(){
+  const grid = $("cfg-grid");
+  grid.innerHTML = "";
+  ENGINE_KEYS.forEach(k=>{
+    const d1 = document.createElement("div");
+    d1.innerHTML = `<label>${k.toUpperCase()} ENDPOINT</label>`;
+    const i1 = document.createElement("input");
+    i1.type = "text"; i1.value = ENG[k].url;
+    i1.onchange = ()=>{ ENG[k].url = i1.value.trim(); saveEngCfg(); pingEngines(); };
+    d1.appendChild(i1);
+    const d2 = document.createElement("div");
+    d2.innerHTML = `<label>${k.toUpperCase()} MODEL</label>`;
+    const i2 = document.createElement("input");
+    i2.type = "text"; i2.value = ENG[k].model;
+    i2.onchange = ()=>{ ENG[k].model = i2.value.trim(); saveEngCfg(); renderRoles(); };
+    d2.appendChild(i2);
+    grid.appendChild(d1); grid.appendChild(d2);
+  });
+}
+function renderRoles(){ ENGINE_KEYS.forEach(k=>{ $("r-"+k).textContent = ENG[k].model; }); }
+
+async function pingEngines(){
+  const marks = await Promise.all(ENGINE_KEYS.map(async k=>{
+    try{
+      await fetch(ENG[k].url+"/api/tags", { signal: AbortSignal.timeout(3000) });
+      return `<span class="on">${ENGINE_MARK[k]}●</span>`;
+    }catch(e){
+      return `<span class="off">${ENGINE_MARK[k]}○</span>`;
+    }
+  }));
+  $("hstat").innerHTML = `ENGINES: ${marks.join(" ")}<br>斷線引擎自動跳過`;
+}
+
+function boot(){
+  $("go").onclick = run;
+  ["ev-loss","ev-cost","ev-resid"].forEach(id=>{ $(id).oninput = recalcEV; });
+  renderCfg();
+  renderRoles();
+  clog("MAGI RISK DIVISION 起動 — 機率預測部門 · NASA 決策分析程序");
+  clog("三引擎並行制：各自獨立推算，分歧本身就是情報");
+  renderAllLists();
+  pingEngines();
+  syncPreds();
+}
+
+// ━━ 解鎖畫面（與 MAGI 主系統共用 vault 與信任機制）━━
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+async function deriveVaultKey(passphrase, extractable){
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), {name:"PBKDF2"}, false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt: b64ToBuf(VAULT.salt), iterations: VAULT.iterations, hash:"SHA-256"},
+    baseKey, {name:"AES-GCM", length:256}, !!extractable, ["decrypt"]
+  );
+}
+async function decryptVaultWithKey(key){
+  const plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv: b64ToBuf(VAULT.iv)}, key, b64ToBuf(VAULT.cipher));
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+function applyPayload(p){
+  BRIDGE_TOKEN = p.bridge_token || "";
+  SUPABASE_SECRET = p.supabase_secret || "";
+  CLAUDE_TOKEN = p.claude_token || "";
+}
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open("magi-vault-db", 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore("keys"); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function storeTrustKey(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction("keys","readwrite");
+    tx.objectStore("keys").put(key, "trustkey");
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function loadTrustKey(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve)=>{
+      const tx = db.transaction("keys","readonly");
+      const getReq = tx.objectStore("keys").get("trustkey");
+      getReq.onsuccess = ()=>resolve(getReq.result || null);
+      getReq.onerror = ()=>resolve(null);
+    });
+  }catch(e){ return null; }
+}
+function hideLockscreen(){ $("lockscreen").classList.add("hide"); }
+function showLockError(){
+  $("lock-err").textContent = "通行碼錯誤，請重新輸入";
+  $("lock-pass").value = "";
+  $("lock-pass").focus();
+}
+const THROTTLE_KEY = "magi_lock_state";
+function getLockState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(THROTTLE_KEY) || "{}");
+    return { fails: s.fails||0, until: s.until||0 };
+  }catch(e){ return { fails:0, until:0 }; }
+}
+function setLockState(state){
+  try{ localStorage.setItem(THROTTLE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function showLockThrottled(remainMs){
+  const sec = Math.max(1, Math.ceil(remainMs/1000));
+  $("lock-err").textContent = `嘗試過多，請等待 ${sec} 秒後再試`;
+  $("lock-pass").value = "";
+}
+async function tryUnlock(passphrase){
+  const state = getLockState();
+  if(state.until > Date.now()){ showLockThrottled(state.until - Date.now()); return; }
+  try{
+    const key = await deriveVaultKey(passphrase, false);
+    const payload = await decryptVaultWithKey(key);
+    applyPayload(payload);
+    if($("lock-trust").checked){
+      const trustKey = await deriveVaultKey(passphrase, false);
+      try{ await storeTrustKey(trustKey); }catch(e){}
+    }
+    setLockState({fails:0, until:0});
+    hideLockscreen();
+    boot();
+  }catch(e){
+    const fails = state.fails + 1;
+    let until = 0;
+    if(fails >= 5){
+      const backoff = Math.min(30000 * Math.pow(2, fails-5), 300000);
+      until = Date.now() + backoff;
+    }
+    setLockState({fails, until});
+    if(until > Date.now()) showLockThrottled(until - Date.now());
+    else showLockError();
+  }
+}
+$("lock-go").onclick = ()=>{
+  const p = $("lock-pass").value;
+  const state = getLockState();
+  if(state.until > Date.now()){ showLockThrottled(state.until - Date.now()); return; }
+  if(!p) return;
+  tryUnlock(p);
+};
+$("lock-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") $("lock-go").click(); });
+
+(async function initLock(){
+  const trustKey = await loadTrustKey();
+  if(trustKey){
+    try{
+      const payload = await decryptVaultWithKey(trustKey);
+      applyPayload(payload);
+      hideLockscreen();
+      boot();
+      return;
+    }catch(e){}
+  }
+  $("lock-pass").focus();
+})();
+</script>
+</body>
+</html>
