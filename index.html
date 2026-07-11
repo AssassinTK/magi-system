@@ -24,6 +24,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
 header h1{font-size:18px;color:var(--orange);letter-spacing:4px}
 header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
+.tabs{display:flex;gap:8px;margin:14px 0 0}
+.tabs a{flex:1;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:2px;padding:10px;min-height:20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
+.tabs a.on{border-color:var(--orange);color:var(--orange);background:rgba(255,123,0,.08)}
+.tabs a:not(.on):hover{border-color:var(--orange-dim);color:var(--orange)}
 .hstat{font-size:10px;color:var(--green);text-align:right;line-height:1.6}
 .hstat .off{color:var(--red)}
 
@@ -225,10 +229,15 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <header>
   <div>
     <h1>MAGI SYSTEM</h1>
-    <div class="sub">三賢人決策支援 · PERSONALITY TRANSPLANT OS ｜ <a href="risk.html" style="color:var(--orange);text-decoration:none">風險預測部門 →</a></div>
+    <div class="sub">三賢人決策支援 · PERSONALITY TRANSPLANT OS</div>
   </div>
   <div class="hstat" id="hstat">LINK: 確認中...</div>
 </header>
+
+<div class="tabs">
+  <a href="index.html" class="on">三賢人審議 MAGI</a>
+  <a href="risk.html">風險預測 RISK</a>
+</div>
 
 <div class="progress-rail" id="prail" style="display:none"><span id="prail-txt">待機</span><span id="prail-time"></span></div>
 <div class="magi-grid">

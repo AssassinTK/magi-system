@@ -26,6 +26,10 @@ header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify
 header h1{font-size:18px;color:var(--cyan);letter-spacing:4px}
 header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
 header .sub a{color:var(--orange);text-decoration:none}
+.tabs{display:flex;gap:8px;margin:14px 0 0}
+.tabs a{flex:1;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:2px;padding:10px;min-height:20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
+.tabs a.on{border-color:var(--cyan);color:var(--cyan);background:rgba(56,189,248,.08)}
+.tabs a:not(.on):hover{border-color:var(--orange-dim);color:var(--orange)}
 .hstat{font-size:10px;color:var(--dim);text-align:right;line-height:1.6;letter-spacing:1px}
 .hstat .on{color:var(--green)}
 .hstat .off{color:var(--red)}
@@ -47,6 +51,13 @@ header .sub a{color:var(--orange);text-decoration:none}
 .unit.done .ustat{color:var(--green)}
 .unit.fail{border-color:var(--red)}
 .unit.fail .ustat{color:var(--red)}
+.unit.off{opacity:.4;border-color:#333}
+.unit.off .ustat{color:var(--dim)}
+.eng-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.eng-btn{flex:1;min-width:90px;background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:12px;letter-spacing:1px;padding:9px 6px;cursor:pointer;min-height:38px;transition:transform .08s ease,border-color .2s,color .2s}
+.eng-btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(56,189,248,.07)}
+.eng-btn:active{transform:scale(.97)}
+.eng-btn small{display:block;font-size:9px;margin-top:2px;color:var(--dim)}
 
 .console{border:1px solid #222;background:#07070c;padding:8px 12px;font-size:11px;color:var(--dim);height:74px;overflow-y:auto;line-height:1.7;margin-bottom:14px}
 .console .ln-sys{color:var(--orange-dim)}
@@ -140,6 +151,17 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .hist-item summary{font-size:11px;color:var(--dim)}
 .hist-item summary b{color:var(--text);font-weight:normal}
 .hist-item .body{font-size:12px}
+.hist-filter{display:flex;gap:6px;padding:10px 12px;flex-wrap:wrap;border-bottom:1px solid #222}
+.hist-filter input,.hist-filter select{flex:1;min-width:120px;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 8px}
+.hist-filter input:focus,.hist-filter select:focus{outline:none;border-color:var(--cyan)}
+.tag.cat-tag{color:var(--dim);border-color:#444;margin-right:4px;white-space:nowrap}
+.tag.cat-major{color:var(--red);border-color:var(--red)}
+.tag.cat-love{color:#ff7bc0;border-color:#ff7bc0}
+.tag.cat-work{color:var(--orange);border-color:var(--orange-dim)}
+.tag.cat-work-restaurant{color:var(--orange);border-color:var(--orange)}
+.tag.cat-work-dev{color:#38bdf8;border-color:#38bdf8}
+.tag.cat-life{color:var(--green);border-color:var(--green)}
+.tag.cat-general{color:var(--dim);border-color:#444}
 
 footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
 
@@ -193,10 +215,15 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <header>
   <div>
     <h1>MAGI RISK</h1>
-    <div class="sub">風險預測部門 · PROBABILITY FORECAST DIVISION ｜ <a href="index.html">← 三賢人審議</a></div>
+    <div class="sub">風險預測部門 · PROBABILITY FORECAST DIVISION</div>
   </div>
   <div class="hstat" id="hstat">ENGINES: 確認中...</div>
 </header>
+
+<div class="tabs">
+  <a href="index.html">三賢人審議 MAGI</a>
+  <a href="risk.html" class="on">風險預測 RISK</a>
+</div>
 
 <div class="progress-rail" id="prail" style="display:none"><span id="prail-txt">待機</span><span id="prail-time"></span></div>
 
@@ -246,6 +273,12 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <div class="console" id="console"></div>
 
 <div class="inbox">
+  <label>參戰引擎 / ENGINES（可單選、可多選——多引擎才有交叉校準）</label>
+  <div class="eng-row">
+    <button class="eng-btn" id="eng-ollama" onclick="toggleEngine('ollama')">OLLAMA<small>本機 · 免費</small></button>
+    <button class="eng-btn" id="eng-gemini" onclick="toggleEngine('gemini')">GEMINI<small>雲端 · 需橋接</small></button>
+    <button class="eng-btn" id="eng-claude" onclick="toggleEngine('claude')">CLAUDE<small>雲端 · 手機可用</small></button>
+  </div>
   <label>預測命題 / FORECAST PROPOSAL</label>
   <div class="tmpl-row">
     <button class="tmpl-btn" onclick="useTemplate('done')">如期完成？</button>
@@ -285,6 +318,26 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <details id="history-box">
   <summary>預測記錄 / FORECAST LOG</summary>
+  <div class="hist-filter">
+    <input type="text" id="hist-search" placeholder="搜尋命題關鍵字...">
+    <select id="hist-cat">
+      <option value="">全部分類</option>
+      <option value="life">生活</option>
+      <option value="work">工作（全部）</option>
+      <option value="work:restaurant">└ 餐廳營運</option>
+      <option value="work:dev">└ 系統開發</option>
+      <option value="love">愛情</option>
+      <option value="major">重大決策</option>
+      <option value="general">一般</option>
+    </select>
+    <select id="hist-status">
+      <option value="">全部狀態</option>
+      <option value="pending">待判定</option>
+      <option value="發生">發生</option>
+      <option value="未發生">未發生</option>
+      <option value="無法判定">無法判定</option>
+    </select>
+  </div>
   <div id="hist"></div>
 </details>
 
@@ -332,6 +385,35 @@ function loadEngCfg(){
 }
 let ENG = loadEngCfg();
 function saveEngCfg(){ localStorage.setItem("risk_eng_cfg", JSON.stringify(ENG)); }
+
+function loadActive(){
+  try{
+    const a = JSON.parse(localStorage.getItem("risk_eng_active")||"{}");
+    const out = {};
+    ENGINE_KEYS.forEach(k=>{ out[k] = (typeof a[k]==="boolean") ? a[k] : true; });
+    if(!ENGINE_KEYS.some(k=>out[k])) ENGINE_KEYS.forEach(k=>out[k]=true);
+    return out;
+  }catch(e){ return { ollama:true, gemini:true, claude:true }; }
+}
+let ACTIVE = loadActive();
+function activeKeys(){ return ENGINE_KEYS.filter(k=>ACTIVE[k]); }
+function toggleEngine(k){
+  if(ACTIVE[k] && activeKeys().length===1){ clog("至少要留一個引擎參戰", "ln-err"); return; }
+  ACTIVE[k] = !ACTIVE[k];
+  localStorage.setItem("risk_eng_active", JSON.stringify(ACTIVE));
+  renderEngineState();
+  clog(`引擎編成：${activeKeys().map(x=>x.toUpperCase()).join(" + ")}`);
+}
+function renderEngineState(){
+  ENGINE_KEYS.forEach(k=>{
+    $("eng-"+k).classList.toggle("on", !!ACTIVE[k]);
+    if(ACTIVE[k]){
+      if($("u-"+k).classList.contains("off")) setUnit(k, "", "待機");
+    }else{
+      setUnit(k, "off", "停用");
+    }
+  });
+}
 
 const RISK_SYS = `你是 MAGI 風險預測系統的獨立預測單元，使用 NASA 決策分析方法評估命題。原則：
 1. 先想「同類事件的基準率」再依本案證據調整，不可忽略基準率。
@@ -527,9 +609,10 @@ function renderVerdict(agg){
   const v = $("verdict");
   v.className = "verdict show zone-"+agg.zone;
   $("vtitle").textContent = `${agg.median}%`;
-  $("vsub").innerHTML = `${agg.n} 引擎聚合中位數 ｜ 引擎區間 ${agg.lo}%–${agg.hi}% ｜ ${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
+  $("vsub").innerHTML = `${agg.n===1?"單引擎推定":agg.n+" 引擎聚合中位數"} ｜ ${agg.n>1?`引擎區間 ${agg.lo}%–${agg.hi}% ｜ `:""}${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
   const a = $("valert");
-  if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 賢人重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
+  if(agg.n === 1){ a.style.color = "var(--dim)"; a.textContent = `單引擎模式 — 無跨模型交叉校準，重要決策建議多開引擎`; }
+  else if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 賢人重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
   else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 賢人意見分歧（差距 ${agg.spread} 點）— 建議看各引擎理由找分歧點`; }
   else { a.style.color = "var(--green)"; a.textContent = `✓ 賢人共識良好（差距 ${agg.spread} 點）`; }
   const bar = $("rangebar");
@@ -621,28 +704,30 @@ async function run(){
   if(!q){ clog("預測命題為空", "ln-err"); return; }
   const ctx = $("ctx").value.trim();
   const deadline = $("deadline").value;
+  const fleet = activeKeys();
   $("go").disabled = true;
   $("verdict").className = "verdict";
   $("matrix-box").style.display = "none";
   $("results").innerHTML = "";
-  ENGINE_KEYS.forEach(k=>setUnit(k,"","待機"));
+  renderEngineState();
+  fleet.forEach(k=>setUnit(k,"","待機"));
   predNo++;
   localStorage.setItem("risk_predno", predNo);
-  clog(`預測 #${String(predNo).padStart(3,"0")} 受理 — 三引擎並行推算`);
+  clog(`預測 #${String(predNo).padStart(3,"0")} 受理 — ${fleet.length===1?"單引擎（"+fleet[0].toUpperCase()+"）":fleet.length+" 引擎並行"}推算`);
   prailStart_();
-  prailSet("三引擎並行推算中...");
+  prailSet(fleet.length===1 ? `${fleet[0].toUpperCase()} 推算中...` : `${fleet.length} 引擎並行推算中...`);
   try{
-    const settled = await Promise.allSettled(ENGINE_KEYS.map(k=>forecastUnit(k, q, ctx, deadline)));
+    const settled = await Promise.allSettled(fleet.map(k=>forecastUnit(k, q, ctx, deadline)));
     const forecasts = settled.map((s,i)=>{
       if(s.status==="fulfilled") return s.value;
       const reason = (s.reason && s.reason.message) || String(s.reason);
-      setUnit(ENGINE_KEYS[i], "fail", "離線", "");
-      clog(`${ENGINE_KEYS[i].toUpperCase()} 呼叫失敗：${reason}`, "ln-err");
-      return { engine: ENGINE_KEYS[i], ok:false, error: reason };
+      setUnit(fleet[i], "fail", "離線", "");
+      clog(`${fleet[i].toUpperCase()} 呼叫失敗：${reason}`, "ln-err");
+      return { engine: fleet[i], ok:false, error: reason };
     });
     const oks = forecasts.filter(f=>f.ok);
     if(!oks.length){
-      clog("三引擎全數離線，本次預測作廢（未計入記錄）", "ln-err");
+      clog("參戰引擎全數離線，本次預測作廢（未計入記錄）", "ln-err");
       predNo--; localStorage.setItem("risk_predno", predNo);
       prailStop(); $("go").disabled = false;
       return;
@@ -684,6 +769,37 @@ function recalcEV(){
   $("ev-out").innerHTML = `不採取對策：期望損失 = ${agg.median}% × ${fmtMoney(loss)} = <b>${fmtMoney(evNo)}</b> 元<br>採取對策：${fmtMoney(cost)} + ${resid}% × ${fmtMoney(loss)} = <b>${fmtMoney(evYes)}</b> 元<br>→ ${better}（差 ${fmtMoney(Math.abs(evNo-evYes))} 元）。提醒：影響大到承受不起時，期望值不是唯一準則。`;
 }
 
+// ━━ 內容自動分類（同 MAGI 主系統：只吃命題 q 不吃背景 ctx，即時推導不存欄位）━━
+const CAT_RULES = {
+  major: /重大|人生|結婚|離婚|買房|購屋|買車|購車|創業|開店|辭職|辭掉|離職|轉職|跳槽|裸辭|搬家|買地|移民|移居|生小孩|生育|生子|懷孕|退休|畢生|存款全|梭哈|全押|賣房|賣車|頂讓|收掉|結束營業|百萬|千萬/,
+  love: /愛情|感情|對象|女友|男友|女朋友|男朋友|老婆|老公|太太|先生|配偶|伴侶|曖昧|告白|表白|追求|分手|復合|交往|約會|相親|喜歡的人|心儀|另一半|婚姻|求婚|外遇|劈腿|遠距離/,
+  work_restaurant: /餐廳|海灘|沙灘|叫貨|收貨|進貨|備料|排班|班表|廚房|廚師|內場|外場|出餐|菜單|食材|供應商|廠商|包場|訂位|客訴|翻桌|營業額|門市|時薪|工讀|店員|備品|製冰機|咖啡機|冷藏|冷凍|冰箱|烤箱|生財器具|Eats365|iCHEF|POS|NUEIP/i,
+  work_dev: /系統|開發|程式|寫code|coding|app|API|自動化|部署|上線|重構|架構|資料庫|前端|後端|bug|除錯|串接|串聯|整合|GAS|Apps Script|n8n|Supabase|Vercel|life-os|ERP|AppSheet|LINE.*API|ESP32|IoT|Ollama|workflow|腳本|外掛|plugin/i,
+  work: /工作|上班|加班|會議|開會|客戶|報價|接案|專案|案子|老闆|主管|同事|下屬|合約|合作|KPI|績效|升遷|加薪|薪水|勞資|外包|廠商|生意|業務|營運/,
+  life: /健康|運動|健身|減肥|增肌|飲食|吃|喝|睡眠|作息|習慣|旅遊|旅行|出國|玩|娛樂|遊戲|追劇|看書|讀書|學習|上課|課程|進修|理財|存錢|記帳|訂閱|保險|買.*台|搬到|租屋|租房|寵物|家人|朋友聚|天氣|颱風|下雨/
+};
+const CAT_LABEL = {
+  major:"重大決策", love:"愛情", life:"生活", general:"一般",
+  work:"工作", "work:restaurant":"工作·餐廳", "work:dev":"工作·開發"
+};
+function classifyPred(q){
+  const text = String(q||"");
+  if(CAT_RULES.major.test(text)) return { cat:"major", sub:null };
+  if(CAT_RULES.love.test(text)) return { cat:"love", sub:null };
+  if(CAT_RULES.work_restaurant.test(text)) return { cat:"work", sub:"restaurant" };
+  if(CAT_RULES.work_dev.test(text)) return { cat:"work", sub:"dev" };
+  if(CAT_RULES.work.test(text)) return { cat:"work", sub:null };
+  if(CAT_RULES.life.test(text)) return { cat:"life", sub:null };
+  return { cat:"general", sub:null };
+}
+function catKey(cls){ return cls.sub ? `${cls.cat}:${cls.sub}` : cls.cat; }
+function catLabel(cls){ return CAT_LABEL[catKey(cls)] || CAT_LABEL[cls.cat] || "一般"; }
+function catTagHtml(q){
+  const cls = classifyPred(q);
+  const sub = cls.sub ? ` cat-${cls.cat}-${cls.sub}` : "";
+  return `<span class="tag cat-tag cat-${cls.cat}${sub}">${esc(catLabel(cls))}</span>`;
+}
+
 // ━━ 到期回顧 / 打分 ━━
 function brier(prob, occurred){ return Math.round(Math.pow(prob/100 - (occurred?1:0), 2)*10000)/10000; }
 
@@ -718,7 +834,7 @@ function renderReview(){
     const overdue = p.deadline && p.deadline <= today;
     const probs = (p.forecasts||[]).filter(f=>f.ok).map(f=>`${ENGINE_MARK[f.engine]}:${f.probability}%`).join(" ");
     return `<div class="review-item">
-      <div class="rq">#${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
+      <div class="rq">${catTagHtml(p.q)} #${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
       <div class="rmeta">聚合 ${p.agg?p.agg.median:"?"}%（${probs}）｜ 期限 <span class="${overdue?"overdue":""}">${p.deadline||"未定"}${overdue?" · 已到期":""}</span></div>
       <div class="review-btns">
         <button class="rb-true" onclick="resolvePred(${p.no},'發生')">發生了</button>
@@ -757,8 +873,17 @@ function renderBoard(){
 
 function renderHistory(){
   const hist = $("hist");
-  const preds = loadPreds();
-  if(!preds.length){ hist.innerHTML = `<div class="board-hint">尚無預測記錄。</div>`; return; }
+  let preds = loadPreds();
+  const kw = ($("hist-search").value||"").trim().toLowerCase();
+  const cat = $("hist-cat").value;
+  const status = $("hist-status").value;
+  if(kw) preds = preds.filter(p=>(`#${String(p.no).padStart(3,"0")} ${p.q} ${p.ctx||""}`).toLowerCase().includes(kw));
+  if(cat) preds = preds.filter(p=>{
+    const k = catKey(classifyPred(p.q));
+    return cat==="work" ? k.startsWith("work") : k===cat;
+  });
+  if(status) preds = preds.filter(p=> status==="pending" ? !p.outcome : p.outcome===status);
+  if(!preds.length){ hist.innerHTML = `<div class="board-hint">${loadPreds().length?"沒有符合篩選條件的記錄。":"尚無預測記錄。"}</div>`; return; }
   hist.innerHTML = preds.map(p=>{
     const tag = p.outcome==="發生" ? `<span class="tag t-green">發生</span>`
       : p.outcome==="未發生" ? `<span class="tag t-red">未發生</span>`
@@ -769,7 +894,7 @@ function renderHistory(){
       ? `<li>${f.engine.toUpperCase()}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
       : `<li>${f.engine.toUpperCase()}：離線</li>`).join("");
     return `<details class="hist-item">
-      <summary><b>#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,42))}${p.q.length>42?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${tag}</span></summary>
+      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${tag}</span></summary>
       <div class="body">
         <div class="sec">命題</div><div>${esc(p.q)}</div>
         ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
@@ -831,10 +956,14 @@ async function pingEngines(){
 function boot(){
   $("go").onclick = run;
   ["ev-loss","ev-cost","ev-resid"].forEach(id=>{ $(id).oninput = recalcEV; });
+  $("hist-search").oninput = renderHistory;
+  $("hist-cat").onchange = renderHistory;
+  $("hist-status").onchange = renderHistory;
   renderCfg();
   renderRoles();
+  renderEngineState();
   clog("MAGI RISK DIVISION 起動 — 機率預測部門 · NASA 決策分析程序");
-  clog("三引擎並行制：各自獨立推算，分歧本身就是情報");
+  clog(`引擎編成：${activeKeys().map(x=>x.toUpperCase()).join(" + ")}（可單選可多選，多引擎才有交叉校準）`);
   renderAllLists();
   pingEngines();
   syncPreds();
