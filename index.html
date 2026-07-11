@@ -780,7 +780,7 @@ function renderResult(unit, v){
   $("results").appendChild(d);
 }
 
-function esc(s){ return String(s??"").replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 function saveHistory(no, q, ctx, verdict, votes, jd){
   let h;
