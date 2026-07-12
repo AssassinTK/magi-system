@@ -309,7 +309,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   </div>
   <label>預測命題 / FORECAST PROPOSAL</label>
   <div class="tmpl-row">
-    <button class="tmpl-btn" onclick="useTemplate('done')">如期完成？</button>
+    <button class="tmpl-btn" onclick="useTemplate('done')">會延誤？</button>
     <button class="tmpl-btn" onclick="useTemplate('over')">會超支？</button>
     <button class="tmpl-btn" onclick="useTemplate('fail')">會出事？</button>
   </div>
@@ -451,7 +451,7 @@ const BRAINS = [
 const BRAIN_MARK = { gambler:"G", sentinel:"S", arbiter:"A" };
 const BRAIN_LABEL = { gambler:"GAMBLER", sentinel:"SENTINEL", arbiter:"ARBITER", ollama:"OLLAMA", gemini:"GEMINI", claude:"CLAUDE" };
 
-const RISK_PROC = `你是 MAGI RISK 風險預測系統的獨立預測單元之一，與另外兩個不同人格的大腦並行推算、事後表決，所以你只需要忠於自己的視角，不必面面俱到。共同推理程序（NASA RIDM＋貝氏）：
+const RISK_PROC = `你是 MAGI RISK 風險預測系統的獨立預測單元之一，與另外兩個不同人格的大腦並行推算、事後表決。你的天職是把自己的視角做到最好；共同的推理程序如下（貝氏推斷＋NASA 飛行規則精神）：
 1. 貝氏：先定「先驗」＝同類事件的歷史基準率，再逐條列本案證據往上或往下修正，得出後驗機率。
 2. 因果：區分相關與因果，寫出「原因 → 機制 → 結果」因果鏈，並指出鏈上最值得介入的一個節點（干預點）。
 3. 絆線：事前寫好「若出現某訊號 → 立刻採取某行動」。
@@ -649,8 +649,9 @@ function decideVotes(oks){
   const yes = votes.filter(x=>x.v==="會").length;
   const no = votes.filter(x=>x.v==="不會").length;
   let judge, cls;
-  if(yes>no) { judge="會發生"; cls="j-yes"; }
-  else if(no>yes) { judge="不會發生"; cls="j-no"; }
+  // 絕對多數（過半參戰腦），不是相對多數：否則兩腦棄權時單一 55% 弱票就能定生死，還會跟同框的中位機率互相矛盾
+  if(yes > votes.length/2) { judge="會發生"; cls="j-yes"; }
+  else if(no > votes.length/2) { judge="不會發生"; cls="j-no"; }
   else { judge="無法裁定"; cls="j-hold"; }
   const tally = votes.map(x=>`${BRAIN_MARK[x.brain]||"?"}:${x.v}`).join("　");
   return { judge, cls, yes, no, hold: votes.length-yes-no, tally };
@@ -668,15 +669,21 @@ function aggregate(oks){
   const spread = Math.max(...probs) - Math.min(...probs);
   const lik = median(oks.map(f=>f.likelihood));
   const imp = median(oks.map(f=>f.impact));
-  const sev = lik*imp;
+  // 風險區用「各腦配對乘積的中位數」而非 median(lik)×median(imp)：後者兩維中位數可能來自不同腦，會跳到無人主張的格子
+  const sev = median(oks.map(f=>f.likelihood*f.impact));
   const zone = sev>=15 ? "high" : sev>=8 ? "mid" : "low";
   const agg = { median: med, lo: Math.min(...probs), hi: Math.max(...probs), spread, likelihood: lik, impact: imp, zone, n: oks.length };
   const evs = oks.map(f=>f.ev).filter(e=>e && e.loss>0);
   if(evs.length){
-    agg.evLoss = median(evs.map(e=>e.loss));
-    agg.evCost = median(evs.map(e=>e.cost));
-    agg.evResid = median(evs.map(e=>e.resid));
-    agg.evBasis = (evs.find(e=>e.basis)||{}).basis || "";
+    // cost 與 resid 是「同一腦的同一方案」的配對參數，不能各自取中位數（會合成出無人提出的假方案，甚至給反向建議）。
+    // 改為每腦先算配對 evYes，挑「中位方案」整組帶出，三個數字保證對應某一顆腦真實提的方案。
+    const ranked = evs.map(e=>({ ...e, evYes: e.cost + (e.resid/100)*e.loss }))
+      .sort((a,b)=>a.evYes-b.evYes);
+    const pick = ranked[Math.floor((ranked.length-1)/2)];
+    agg.evLoss = pick.loss;
+    agg.evCost = pick.cost;
+    agg.evResid = pick.resid;
+    agg.evBasis = pick.basis || (evs.find(e=>e.basis)||{}).basis || "";
   }
   return agg;
 }
@@ -768,9 +775,10 @@ function forecastDetailHtml(f){
 
 // ━━ 道德經對應（規則引擎，不吃 token 不會幻覺，依聚合特徵選章句）━━
 function laoTzu(agg){
-  if(agg.n === 1) return { t:"知人者智，自知者明。", w:"單引擎之見——先看清自己判斷的盲點" };
+  if(agg.n === 1) return { t:"知人者智，自知者明。", w:"單腦之見——僅剩一個視角、無交叉校準，先看清自己判斷的盲點" };
   if(agg.spread >= 30) return { t:"知不知，上；不知知，病。", w:"承認不知道，是上策；分歧大代表誰都還不知道" };
-  if(agg.median >= 85 || agg.median <= 15) return { t:"飄風不終朝，驟雨不終日。", w:"極端不會持久——機率貼近 0 或 100 時，先懷疑過度自信" };
+  // 極端機率只在「同時有分歧」時才示警過度自信：三腦一致的極端值是校準好的表現（超級預測員敢用極端機率），不該一律潑冷水，且會蓋掉高風險該有的行動章句
+  if((agg.median >= 85 || agg.median <= 15) && agg.spread >= 15) return { t:"飄風不終朝，驟雨不終日。", w:"機率極端又眾說紛紜——先懷疑是不是有人過度自信" };
   if(agg.zone === "high") return { t:"為之於未有，治之於未亂。", w:"在事情未發生前處理，在混亂未成形前治理" };
   if(agg.zone === "mid") return { t:"圖難於其易，為大於其細。", w:"難事從容易處下手，大事從細節做起" };
   return { t:"慎終如始，則無敗事。", w:"低風險最容易陰溝翻船——收尾像開頭一樣謹慎" };
@@ -1065,7 +1073,7 @@ function renderAllLists(){ renderReview(); renderBoard(); renderHistory(); }
 
 // ━━ 模板 / 設定 / 引擎狀態 ━━
 const TEMPLATES = {
-  done: { q:"（專案／工程）能在期限前如期完成上線嗎？", ctx:"目前進度：\n剩餘工項：\n人力狀況：" },
+  done: { q:"（專案／工程）會延誤、無法在期限前如期上線嗎？", ctx:"目前進度：\n剩餘工項：\n人力狀況：" },
   over: { q:"（採購／工程）最終花費會超出預算嗎？", ctx:"預算金額：\n目前已花：\n主要不確定項目：" },
   fail: { q:"（設備／系統／計畫）會在近期內出狀況嗎？", ctx:"目前狀態：\n過去故障頻率：\n最近的異常徵兆：" }
 };

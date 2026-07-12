@@ -762,8 +762,11 @@ function decide(votes){
 }
 
 function voteCardHTML(unitName, v){
+  // 收斂回合法列舉再插進 class 屬性與文字：歷史/雲端同步回來的票未經 askUnit 驗證，直接內插 v.vote 會是 XSS 匯點（esc 對屬性語境防護不足）
+  const vv = ["可決","否決","保留"].includes(v.vote) ? v.vote : "保留";
+  const vc = Math.max(0, Math.min(100, parseInt(v.confidence)||0));
   return `<summary><span style="color:var(--orange)">${esc(unitName)}</span>
-      <span><span class="tag ${v.vote}">${v.vote}${v._failed?"（呼叫失敗）":""}</span> <span style="color:var(--dim)">${v.confidence}%</span></span>
+      <span><span class="tag ${vv}">${vv}${v._failed?"（呼叫失敗）":""}</span> <span style="color:var(--dim)">${vc}%</span></span>
     </summary>
     <div class="body">
       <div style="white-space:pre-line">${esc(v.reason)}</div>

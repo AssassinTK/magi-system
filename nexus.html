@@ -256,8 +256,9 @@ function judgeOf(pred){
   const oks = (pred.forecasts||[]).filter(f=>f.ok);
   const yes = oks.filter(f=>probVote(f.probability)==="會").length;
   const no = oks.filter(f=>probVote(f.probability)==="不會").length;
-  if(yes>no) return { t:"會發生", cls:"t-judge-yes" };
-  if(no>yes) return { t:"不會發生", cls:"t-judge-no" };
+  // 絕對多數（過半參戰腦），與 risk.html decideVotes 同步：棄權票不進分母會讓單一弱票獨裁
+  if(yes > oks.length/2) return { t:"會發生", cls:"t-judge-yes" };
+  if(no > oks.length/2) return { t:"不會發生", cls:"t-judge-no" };
   return { t:"無法裁定", cls:"t-judge-hold" };
 }
 function exposureOf(p){
