@@ -178,6 +178,12 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .tag.t-red{color:var(--red);border-color:var(--red)}
 .tag.t-yellow{color:var(--yellow);border-color:var(--yellow)}
 .tag.t-dim{color:var(--dim);border-color:#444}
+.tag.t-orange{color:var(--orange);border-color:var(--orange)}
+.jd-line{font-size:13px;line-height:1.9}
+.jd-line b{font-weight:normal}
+.jd-line b.t-cyan{color:var(--cyan)}
+.jd-line b.t-orange{color:var(--orange)}
+.jd-line b.t-yellow{color:var(--yellow)}
 
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
 .settings-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
@@ -884,6 +890,15 @@ function decideVotes(oks){
   return { judge, cls, yes, no, hold: votes.length-yes-no, tally };
 }
 
+// 從記錄即時重算多數決（不存欄位，舊記錄一併適用；跟 nexus 的 judgeOf 同一套規則）
+function judgeOfPred(p){
+  const oks = (p.forecasts||[]).filter(f=>f.ok);
+  return oks.length ? decideVotes(oks) : null;
+}
+function judgeTagCls(jd){
+  return jd.cls==="j-yes" ? "t-cyan" : jd.cls==="j-no" ? "t-orange" : "t-yellow";
+}
+
 // ━━ 聚合 ━━
 function median(arr){
   const s = [...arr].sort((a,b)=>a-b);
@@ -1374,7 +1389,7 @@ function renderReview(){
     const probs = (p.forecasts||[]).filter(f=>f.ok).map(f=>`${BRAIN_MARK[f.brain]||ENGINE_MARK[f.engine]||"?"}:${f.probability}%`).join(" ");
     return `<div class="review-item">
       <div class="rq">${catTagHtml(p.q)} #${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
-      <div class="rmeta">聚合 ${p.agg?p.agg.median:"?"}%（${probs}）｜ 期限 <span class="${overdue?"overdue":""}">${p.deadline||"未定"}${overdue?" · 已到期":""}</span></div>
+      <div class="rmeta">${(()=>{ const j=judgeOfPred(p); return j?`<span class="tag ${judgeTagCls(j)}">${j.judge}</span> `:""; })()}總機率 ${p.agg?p.agg.median:"?"}%（${probs}）｜ 期限 <span class="${overdue?"overdue":""}">${p.deadline||"未定"}${overdue?" · 已到期":""}</span></div>
       <div class="review-btns">
         <button class="rb-true" onclick="resolvePred(${p.no},'發生')">發生了</button>
         <button class="rb-false" onclick="resolvePred(${p.no},'未發生')">沒發生</button>
@@ -1429,18 +1444,23 @@ function renderHistory(){
       : p.outcome==="未發生" ? `<span class="tag t-red">未發生</span>`
       : p.outcome==="無法判定" ? `<span class="tag t-dim">無法判定</span>`
       : `<span class="tag t-yellow">待判定</span>`;
-    const scoreLine = p.scores ? `<div class="sec">BRIER 得分</div><div>${Object.entries(p.scores).map(([k,s])=>`${k.toUpperCase()} ${s.toFixed(3)}`).join(" ｜ ")}</div>` : "";
+    const jd = judgeOfPred(p);   // 即時重算多數決，舊記錄也適用
+    const jTag = jd ? `<span class="tag ${judgeTagCls(jd)}">${jd.judge}</span> ` : "";
+    const scoreLine = p.scores ? `<div class="sec">準度得分 BRIER <span class="gloss">＝越低越準，0.25＝丟銅板</span></div><div>${Object.entries(p.scores).map(([k,s])=>`${BRAIN_LABEL[k]||k.toUpperCase()} ${s.toFixed(3)}`).join(" ｜ ")}</div>` : "";
     const fLines = (p.forecasts||[]).map(f=> f.ok
-      ? `<li>${fLabel(f)}：${f.probability}%（${f.ci_low}–${f.ci_high}）— ${esc(f.reason)}</li>`
+      ? `<li>${fLabel(f)}：${f.probability}%（${f.ci_low}–${f.ci_high}）· 投「${probVote(f.probability)}」— ${esc(f.reason)}</li>`
       : `<li>${fLabel(f)}：離線</li>`).join("");
     const revTag = p.rev ? `<span class="tag t-cyan">修正×${p.rev}${p.prevMedian!=null?` ${p.prevMedian}→${p.agg?p.agg.median:"?"}%`:""}</span> ` : "";
+    const jdLine = jd ? `<div class="sec">多數決裁定 <span class="gloss">＝機率≥55%投「會」、≤45%投「不會」，過半才成立</span></div>
+        <div class="jd-line"><b class="${judgeTagCls(jd)}">${jd.judge}</b>　總機率 <b>${p.agg?p.agg.median:"?"}%</b>　<span class="gloss">（會 ${jd.yes}·不會 ${jd.no}·保留 ${jd.hold}）　${jd.tally}</span></div>` : "";
     return `<details class="hist-item">
-      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>聚合 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}</span></summary>
+      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>${jTag}總機率 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}</span></summary>
       <div class="body">
         <div class="sec">命題</div><div>${esc(p.q)}</div>
         ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
         <div class="sec">期限</div><div>${p.deadline||"未定"}</div>
-        <div class="sec">各引擎</div><ul>${fLines}</ul>
+        ${jdLine}
+        <div class="sec">三腦各自推定</div><ul>${fLines}</ul>
         ${scoreLine}
       </div>
     </details>`;
