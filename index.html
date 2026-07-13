@@ -703,7 +703,7 @@ async function askUnit(unit, question, context, unitIdx, gateNote){
   clog(`${unit.name} PATTERN 解析開始`);
   const messages = [
     // 飛輪接在人格 prompt 尾端（vault 裡的 sys/PROMPT_TAIL 完全不動）
-    { role:"system", content: unit.sys + PROMPT_TAIL + magiFlywheelBlock(unitIdx, question) },
+    { role:"system", content: unit.sys + PROMPT_TAIL + DECISION_DISCIPLINE + magiFlywheelBlock(unitIdx, question) },
     { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}${gateNote||""}` }
   ];
   const options = { temperature: unit.temp, num_predict: 700 };
@@ -749,7 +749,7 @@ async function askUnitRevote(unit, question, context, myPrev, opponents, unitIdx
   const oppText = opponents.map(o=>`【${o.name}】理由：${o.reason||"（無）"}${o.question?`\n質問：${o.question}`:""}`).join("\n\n");
   const revoteInstr = `這是針對性再表決（原案三方不一致，已進入再審議，本輪強制二選一，不得投「保留」或任何其他值）。\n\n你上一輪投票：${myPrev.vote}（信賴度${myPrev.confidence}%）\n你上一輪理由：${myPrev.reason||"（無）"}\n\n其他兩位賢人的核心理由與質問：\n${oppText}\n\n規則：若維持原票，你必須具體擊破對方最強的論點；若改票，你必須說明是哪一個新事實或論點說服了你改變立場。vote 欄位只能是「可決」或「否決」兩者之一，絕對不可以輸出「保留」或其他任何值。`;
   const messages = [
-    { role:"system", content: unit.sys + PROMPT_TAIL + magiFlywheelBlock(unitIdx, question) },
+    { role:"system", content: unit.sys + PROMPT_TAIL + DECISION_DISCIPLINE + magiFlywheelBlock(unitIdx, question) },
     { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}` },
     { role:"assistant", content: JSON.stringify({vote:myPrev.vote, confidence:myPrev.confidence, reason:myPrev.reason}) },
     { role:"user", content: revoteInstr }
@@ -822,6 +822,37 @@ function precedentText(q){
   ).join("\n\n");
   return `\n\n以下為過往類似判例（僅供judgment撰寫參考，不代表本案必須從同判）：\n${lines}`;
 }
+
+// ━━ 決策紀律：接在三賢人人格 prompt 尾端（vault 裡的人格完全不動）━━
+// 這幾條是「每日歷史考卷」實測抓出來的系統性弱點，不是憑空加的：
+//   ・阿波羅13 題：三賢人 2:1 否決「較慢但每步可驗證」的方案，選了「最快但賭一個未驗證的假設」。
+//   ・福島題：面對「成本明確、風險不確定」的防範性投資，被成本說服而否決。
+// 共同機制：預防的成本是確定的、看得見的；災難的成本是不確定的、看不見的——人（和模型）系統性低估後者。
+const DECISION_DISCIPLINE = `
+
+━━ 決策紀律（實測抓出的系統性盲點，每案必須主動檢查）━━
+
+1. **單向門 vs 雙向門**：先判斷這個決定「做錯了能不能回頭」。
+   ・雙向門（可逆、代價有限）→ 可以大膽、可以快、錯了再改。
+   ・單向門（不可逆：人命、毀滅性損失、無法復原的信譽或資產）→ 判準完全不同：
+     **寧可錯過一個機會，也不可犯一次不可逆的錯**。此時「期望值划算」不是充分理由，
+     因為不可逆的災難沒有「平均下來」可言，一次就出局。
+
+2. **預防的不對稱**：當議案是「要不要花錢/花時間防範一個不確定的風險」時，注意這個結構——
+   **預防的成本是確定的、看得見的、現在就要付；災難的成本是不確定的、看不見的、未來才發生。**
+   人天生會系統性高估前者、低估後者。你若要否決一項防範性投資，必須先誠實回答：
+   「如果我錯了，代價是什麼？誰來承擔？那個代價是不是不可逆的？」
+
+3. **舉證責任的方向**：區分「有證據顯示它安全」與「缺乏證據顯示它危險」——後者**完全不構成**安全的理由。
+   面對可能不可逆的後果，正確的預設是「未經證明安全＝視為不安全」。
+   當有人說「科學共識不足」「統計上不顯著」「沒有直接證據」時，那是「我們不知道」，不是「沒有風險」。
+
+4. **不要用未驗證的假設換取速度**：若有兩個方案——(A) 較快，但依賴一個未經驗證的關鍵假設；
+   (B) 較慢，但每一步都可驗證、可中止——在後果不可逆時選 (B)。
+   時間壓力會誘使你把「未知」當成「可接受」，那正是災難的標準劇本。
+
+※ 以上不改變你的人格與立場，只是要求你在投票前**把這四項檢查完**。
+   若你的結論違反其中任何一條，必須在 reason 裡明確說明為什麼本案是例外。`;
 
 // ━━ 數據飛輪：已對答案的判決 → 回饋進三賢人下一次的表決 ━━
 // 原設計刻意讓三賢人看不到歷史（防從眾），但那個顧慮針對的是「看別人怎麼判」。
