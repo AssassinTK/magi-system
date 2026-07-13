@@ -168,6 +168,9 @@ details[open] summary::after{content:"▾"}
 details summary:active{background:rgba(56,189,248,.10)}
 details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--text)}
 .body .sec{margin-top:8px;color:var(--dim);font-size:11px;letter-spacing:1px}
+.gloss{color:#5f5a50;font-size:10px;letter-spacing:0;font-weight:normal}
+.uncert{color:var(--dim);font-size:11.5px;line-height:1.8;margin-top:2px}
+.uncert b{color:var(--cyan);font-weight:normal}
 .body ul{padding-left:18px;margin-top:4px}
 .tag{font-size:11px;padding:1px 8px;border:1px solid;white-space:nowrap}
 .tag.t-cyan{color:var(--cyan);border-color:var(--cyan)}
@@ -285,19 +288,19 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 <div class="risk-grid">
   <div class="unit" id="u-gambler">
     <div class="uname">GAMBLER·1</div>
-    <div class="urole">慾望 — 機會 / 上行 / 選擇權</div>
+    <div class="urole">慾望 — 看機會、算錯過的代價</div>
     <div class="ustat" id="s-gambler">待機</div>
     <div class="uprob" id="p-gambler"></div>
   </div>
   <div class="unit" id="u-sentinel">
     <div class="uname">SENTINEL·2</div>
-    <div class="urole">恐懼 — 防禦 / 絆線 / 最壞情境</div>
+    <div class="urole">恐懼 — 想最壞情況、先寫好預警線</div>
     <div class="ustat" id="s-sentinel">待機</div>
     <div class="uprob" id="p-sentinel"></div>
   </div>
   <div class="unit" id="u-arbiter">
     <div class="uname">ARBITER·3</div>
-    <div class="urole">理性 — 基準率 / 貝氏 / 期望值</div>
+    <div class="urole">理性 — 從統計出發、不帶情緒的錨</div>
     <div class="ustat" id="s-arbiter">待機</div>
     <div class="uprob" id="p-arbiter"></div>
   </div>
@@ -319,7 +322,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </div>
 
 <div class="matrix-box" id="matrix-box" style="display:none">
-  <div class="mtitle">風險矩陣 / RISK MATRIX　★=聚合定位　G/S/A=慾望/恐懼/理性腦</div>
+  <div class="mtitle">風險矩陣 / RISK MATRIX　<span class="gloss">橫軸＝多容易發生，縱軸＝發生了多嚴重；越右上越該處理。★＝三腦的共識位置，G/S/A＝慾望/恐懼/理性腦各自的位置</span></div>
   <div class="matrix" id="matrix"></div>
   <div style="max-width:440px;margin:4px auto 0;display:flex;justify-content:space-between">
     <span style="font-size:9px;color:var(--dim)">↑ 影響嚴重度</span>
@@ -372,10 +375,11 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <details id="ev-box">
   <summary>期望值試算 / EXPECTED VALUE <span class="tag t-dim" id="ev-ptag">三腦自動估算</span></summary>
+  <div class="board-hint">期望值＝把機率換算成錢，決定「該不該花這筆錢去防」。三腦會自動估好數字帶進來，你也可以直接改。</div>
   <div class="ev-grid">
     <div><label>若發生的損失（元）</label><input type="number" id="ev-loss" placeholder="100000"></div>
     <div><label>對策成本（元）</label><input type="number" id="ev-cost" placeholder="20000"></div>
-    <div><label>採取對策後殘餘機率 %</label><input type="number" id="ev-resid" placeholder="0" min="0" max="100"></div>
+    <div><label>殘餘機率 %<span class="gloss"> ＝做了對策後還會發生的機率</span></label><input type="number" id="ev-resid" placeholder="0" min="0" max="100"></div>
   </div>
   <div class="ev-out" id="ev-out">先跑一次預測，或直接輸入數字（會用最近一次聚合機率計算）。</div>
 </details>
@@ -390,7 +394,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <summary>到期回顧 · 對答案 / GRADE <span class="tag t-yellow" id="review-count" style="display:none"></span></summary>
   <div class="board-hint">預測要對過答案才算數。判定「發生／未發生」後，系統會替每顆腦算 Brier 分數（越低越準）。</div>
   <div id="review-list"></div>
-  <div class="board-sec">三腦校準計分板 / CALIBRATION　<span>Brier =（預測機率−實際結果）²，0 最準、0.25 = 丟銅板、1 最離譜</span></div>
+  <div class="board-sec">三腦準度排行 / CALIBRATION　<span>Brier 分數＝準度，越低越準。0＝神準、0.25＝跟丟銅板一樣、1＝完全反了</span></div>
   <div id="board"></div>
 </details>
 
@@ -927,7 +931,7 @@ function renderVerdict(agg, jd){
     $("vvotes").textContent = `三腦表決　${jd.tally}`;
   }
   $("vtitle").textContent = `${agg.median}%`;
-  $("vsub").innerHTML = `${agg.n} 腦聚合中位數 ｜ ${agg.n>1?`區間 ${agg.lo}%–${agg.hi}% ｜ `:""}${zoneLabel(agg.zone)}（可能性${agg.likelihood} × 影響${agg.impact}）`;
+  $("vsub").innerHTML = `${agg.n} 腦的中間值 <span class="gloss">（聚合中位數）</span>${agg.n>1?` ｜ 三腦各自估 ${agg.lo}%–${agg.hi}%`:""} ｜ ${zoneLabel(agg.zone)}<span class="gloss">（發生可能性 ${agg.likelihood} 級 × 影響嚴重度 ${agg.impact} 級，滿分各 5 級）</span>`;
   // 證據等級徽章：這個數字有多少是「知道」、多少是「外推」
   const eg = agg.evidenceGrade || "中";
   const egCls = eg==="高" ? "eg-high" : eg==="中" ? "eg-mid" : "eg-low";
@@ -982,35 +986,37 @@ function forecastDetailHtml(f){
   const sc = f.scenarios;
   const e = f.evidence;
   const evi = e ? `
-    <div class="sec">證據基礎 EVIDENCE</div>
+    <div class="sec">證據基礎 EVIDENCE <span class="gloss">＝這個判斷有多少來自本案證據、多少只是外推</span></div>
     <div><span class="egrade ${e.grade==="高"?"eg-high":e.grade==="中"?"eg-mid":"eg-low"}">證據 ${esc(e.grade)}</span>${e.ciWidened?` <span class="egrade eg-warn">區間已被系統拉寬</span>`:""}${e.basis?`　建立在：${esc(e.basis)}`:""}</div>
     ${(e.assumptions&&e.assumptions.length)?`<ul>${e.assumptions.map(a=>
       `<li>${esc(a.a)}<br>${a.src?`<span class="asrc">└ 依據：${esc(a.src)}</span>`:`<span class="anosrc">└ ⚠ 無依據——此假設可能是幻覺，請自行查證</span>`}</li>`
     ).join("")}</ul>`:""}` : "";
   const bayes = (f.prior!=null || (f.updates&&f.updates.length)) ? `
-    <div class="sec">貝氏推理鏈 BAYES</div>
-    <div class="bayes-chain">先驗 ${f.prior}%${(f.updates||[]).map(u=>` <span class="${u.dir==="↓"?"bd":"bu"}">${u.dir}</span> ${esc(u.e)}`).join(" →")} → <b>後驗 ${f.probability}%</b></div>` : "";
+    <div class="sec">貝氏推理鏈 BAYES <span class="gloss">＝先從同類事件的基準率出發，再依本案證據一條條修正</span></div>
+    <div class="bayes-chain">先驗 ${f.prior}%${(f.updates||[]).map(u=>` <span class="${u.dir==="↓"?"bd":"bu"}">${u.dir}</span> ${esc(u.e)}`).join(" →")} → <b>後驗 ${f.probability}%</b></div>
+    <div class="gloss">先驗＝還沒看本案證據前的起手估計　後驗＝看完證據後的最終判斷</div>
+    <div class="uncert">不確定度：<b>90% 信賴區間 ${f.ci_low}–${f.ci_high}</b>（寬 ${f.ci_high-f.ci_low} 點）<span class="gloss">＝有九成把握真實機率落在這個範圍；區間越寬，代表這顆腦越沒把握</span></div>` : "";
   const causal = (f.causal && (f.causal.chain||f.causal.lever)) ? `
-    <div class="sec">因果鏈 CAUSAL</div>
+    <div class="sec">因果鏈 CAUSAL <span class="gloss">＝這件事會怎麼一步步發生</span></div>
     <div>${esc(f.causal.chain)}</div>
-    ${f.causal.lever?`<div style="color:var(--cyan)">⚙ 干預點：${esc(f.causal.lever)}</div>`:""}` : "";
+    ${f.causal.lever?`<div style="color:var(--cyan)">⚙ 干預點 <span class="gloss">＝這條鏈上最該下手的地方</span><br>${esc(f.causal.lever)}</div>`:""}` : "";
   return `<div class="body">
     ${evi}
     ${bayes}
     ${causal}
-    <div class="sec">情境分析 SCENARIOS</div>
+    <div class="sec">情境分析 SCENARIOS <span class="gloss">＝三種走向，以及各自的機率</span></div>
     <ul>
       <li>樂觀 ${sc.best.p}%：${esc(sc.best.desc)}</li>
       <li>基準 ${sc.base.p}%：${esc(sc.base.desc)}</li>
       <li>悲觀 ${sc.worst.p}%：${esc(sc.worst.desc)}</li>
     </ul>
-    <div class="sec">偏誤警示 BIAS ALERT</div>
+    <div class="sec">偏誤警示 BIAS ALERT <span class="gloss">＝你這一案最可能踩到的心理陷阱</span></div>
     <ul>${f.biases.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>
-    ${f.ev && f.ev.loss>0 ? `<div class="sec">損失／對策估計 EV</div><div>若發生損失約 ${fmtMoney(f.ev.loss)} 元；對策成本約 ${fmtMoney(f.ev.cost)} 元、殘餘機率 ${f.ev.resid}%${f.ev.basis?`（${esc(f.ev.basis)}）`:""}</div>`:""}
-    ${f.tripwire?`<div class="sec">絆線 TRIPWIRE（NASA 飛行規則）</div><div class="tripwire">⚡ ${esc(f.tripwire)}</div>`:""}
-    <div class="sec">彈性建議 FLEXIBILITY</div>
+    ${f.ev && f.ev.loss>0 ? `<div class="sec">損失／對策估計 EV <span class="gloss">＝萬一發生要賠多少、花多少錢能防、防了之後還剩多少風險</span></div><div>若發生損失約 ${fmtMoney(f.ev.loss)} 元；對策成本約 ${fmtMoney(f.ev.cost)} 元、殘餘機率 ${f.ev.resid}%<span class="gloss">（＝做了對策後還會發生的機率）</span>${f.ev.basis?`<br><span class="gloss">金額怎麼估的：${esc(f.ev.basis)}</span>`:""}</div>`:""}
+    ${f.tripwire?`<div class="sec">絆線 TRIPWIRE <span class="gloss">＝先寫好觸發條件，到時不用臨場想（NASA 飛行規則）</span></div><div class="tripwire">⚡ ${esc(f.tripwire)}</div>`:""}
+    <div class="sec">彈性建議 FLEXIBILITY <span class="gloss">＝怎麼保留退路，把不確定變成選擇權</span></div>
     <div>${esc(f.flexibility)}</div>
-    ${f.overview?`<div class="sec">綜觀 OVERVIEW EFFECT</div><div style="color:var(--dim)">🜨 ${esc(f.overview)}</div>`:""}
+    ${f.overview?`<div class="sec">綜觀 OVERVIEW EFFECT <span class="gloss">＝拉到十年高度看，這件事的真實份量</span></div><div style="color:var(--dim)">🜨 ${esc(f.overview)}</div>`:""}
     <div class="sec">核心理由 REASON</div>
     <div>${esc(f.reason)}</div>
   </div>`;
@@ -1201,7 +1207,7 @@ function recalcEV(){
   const evYes = cost + (resid/100)*loss;
   const better = evYes < evNo ? "採取對策划算" : evYes > evNo ? "不採取對策划算（自留風險）" : "兩者期望值相同";
   const basisLine = autoEvBasis ? `<br><span style="color:var(--dim);font-size:11px">＊金額由三腦推估（中位數），可直接改。依據：${esc(autoEvBasis)}</span>` : "";
-  $("ev-out").innerHTML = `不採取對策：期望損失 = ${agg.median}% × ${fmtMoney(loss)} = <b>${fmtMoney(evNo)}</b> 元<br>採取對策：${fmtMoney(cost)} + ${resid}% × ${fmtMoney(loss)} = <b>${fmtMoney(evYes)}</b> 元<br>→ ${better}（差 ${fmtMoney(Math.abs(evNo-evYes))} 元）。提醒：影響大到承受不起時，期望值不是唯一準則。${basisLine}`;
+  $("ev-out").innerHTML = `不花錢防：平均會賠 <b>${fmtMoney(evNo)}</b> 元 <span class="gloss">（期望損失 ＝ ${agg.median}% × ${fmtMoney(loss)}）</span><br>花錢去防：總成本 <b>${fmtMoney(evYes)}</b> 元 <span class="gloss">（對策 ${fmtMoney(cost)} ＋ 沒防住的殘餘 ${resid}% × ${fmtMoney(loss)}）</span><br>→ ${better}（差 ${fmtMoney(Math.abs(evNo-evYes))} 元）。<span style="color:var(--dim)">提醒：這招只適用「賠得起、可以重來」的風險——會直接毀掉你的事，就算算式說不划算也要防。</span>${basisLine}`;
 }
 
 // ━━ 內容自動分類（同 MAGI 主系統：只吃命題 q 不吃背景 ctx，即時推導不存欄位）━━
@@ -1398,7 +1404,7 @@ function renderBoard(){
     const note = r.avg<0.1 ? "校準優異" : r.avg<0.2 ? "不錯，比丟銅板準" : r.avg<=0.25 ? "跟丟銅板差不多" : "比丟銅板還不準——警戒";
     return `<div class="board-row">
       <span class="bname">${i===0?"👑 ":""}${BRAIN_LABEL[r.k]||r.k.toUpperCase()}</span>
-      <span class="bscore">Brier ${r.avg.toFixed(3)}</span>
+      <span class="bscore">準度 ${r.avg.toFixed(3)}</span>
       <span style="color:var(--dim)">${r.n} 筆</span>
       <span class="bnote">${note}（基準線 0.250 = 永遠猜 50%）</span>
     </div>`;
@@ -1457,7 +1463,7 @@ function renderFlywheel(){
     const off = c.bias > 4 ? `<span class="fwoff">系統性高估 +${c.bias} 點</span>`
       : c.bias < -4 ? `<span class="fwoff">系統性低估 ${c.bias} 點</span>`
       : `<span style="color:var(--green)">無明顯偏移</span>`;
-    return `<div class="fw-row"><span class="fwk">${BRAIN_LABEL[b.id]}</span>　<span class="fwv">Brier ${c.brier.toFixed(3)}</span>　${off}　<span class="fwdim">${c.n} 筆（平均說 ${c.avgPred}%、實際 ${c.actualRate}%）</span></div>`;
+    return `<div class="fw-row"><span class="fwk">${BRAIN_LABEL[b.id]}</span>　<span class="fwv">準度 ${c.brier.toFixed(3)}<span class="gloss">（Brier，越低越準）</span></span>　${off}　<span class="fwdim">${c.n} 筆（平均說 ${c.avgPred}%、實際只發生 ${c.actualRate}%）</span></div>`;
   }).join("");
   const cats = {};
   resolved.forEach(p=>{
@@ -1467,7 +1473,7 @@ function renderFlywheel(){
     if(p.outcome==="發生") cats[k].occ++;
   });
   const catRows = Object.entries(cats).map(([k,v])=>
-    `<div class="fw-row"><span class="fwk">${esc(k)}</span>　<span class="fwv">${v.occ}/${v.n} 發生＝${Math.round(v.occ/v.n*100)}%</span>　<span class="fwdim">${v.n>=FLYWHEEL_MIN_N?"已達門檻，會當作你的專屬先驗注入":"樣本不足，暫不注入"}</span></div>`
+    `<div class="fw-row"><span class="fwk">${esc(k)}</span>　<span class="fwv">${v.occ}/${v.n} 真的發生＝${Math.round(v.occ/v.n*100)}%</span>　<span class="fwdim">${v.n>=FLYWHEEL_MIN_N?"樣本夠了，會當成你的專屬起手估計餵給三腦":"樣本還不夠，暫不使用"}</span></div>`
   ).join("");
   box.innerHTML = `<div class="board-hint" style="padding-bottom:2px">各腦校準（注入自己的成績單）</div>${rows}
     <div class="board-hint" style="padding-bottom:2px;padding-top:10px">你自己的同類基準率（勝過世界平均值）</div>${catRows}`;

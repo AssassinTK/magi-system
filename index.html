@@ -168,6 +168,7 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .fw-row .fwok{color:var(--green)}
 .fw-row .fwdim{color:var(--dim);font-size:11px}
 .conf-capped{color:var(--orange);font-size:10px}
+.gloss{color:#5f5a50;font-size:10px;letter-spacing:0;font-weight:normal}
 footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
 
 #lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,123,0,.012) 3px,rgba(255,123,0,.012) 4px)}
@@ -956,9 +957,9 @@ async function askFollowup(question, jd, votes, followupQ){
 function judgmentDocHTML(jd){
   return `<div class="jruling">${esc(jd.ruling)}</div>
     <div class="jsec">論證</div><div class="jbody">${esc(jd.argument)}</div>
-    <div class="jsec">反方最強論點與擊破</div><div class="jbody">${esc(jd.counter)}</div>
-    <div class="jsec">六個月預測（可證偽）</div><div class="jbody">${esc(jd.forecast)}</div>
-    ${(jd.conditions&&jd.conditions.length)?`<div class="jsec">執行條件與撤退絆線</div><ul class="jbody">${jd.conditions.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    <div class="jsec">反方最強論點與擊破 <span class="gloss">＝先幫對手把最有力的反駁講出來，再打掉它</span></div><div class="jbody">${esc(jd.counter)}</div>
+    <div class="jsec">六個月預測（可證偽） <span class="gloss">＝六個月後可以明確驗證對錯的預測；到期回來對答案，三賢人才會進步</span></div><div class="jbody">${esc(jd.forecast)}</div>
+    ${(jd.conditions&&jd.conditions.length)?`<div class="jsec">執行條件與撤退絆線 <span class="gloss">＝什麼情況出現就該收手（先寫好，到時不用臨場掙扎）</span></div><ul class="jbody">${jd.conditions.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
     ${jd.oneliner?`<div class="joneliner">「${esc(jd.oneliner)}」</div>`:""}`;
 }
 function renderJudgment(jd, question, votes){
@@ -1009,7 +1010,7 @@ function voteCardHTML(unitName, v){
     </summary>
     <div class="body">
       <div style="white-space:pre-line">${esc(v.reason)}</div>
-      ${(v.concepts&&v.concepts.length)?`<div class="sec">引用概念</div><ul>${v.concepts.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+      ${(v.concepts&&v.concepts.length)?`<div class="sec">引用概念 <span class="gloss">＝他用哪些心理學/經濟學概念在推理</span></div><ul>${v.concepts.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
       ${(v.risks&&v.risks.length)?`<div class="sec">風險評估</div><ul>${v.risks.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
       ${v.question?`<div class="sec">尖銳質問</div><div class="uq">${esc(v.question)}</div>`:""}
       ${v.bet?`<div class="sec">下注宣言</div><div class="ubet">${esc(v.bet)}</div>`:""}
@@ -1075,7 +1076,7 @@ function renderFlywheel(){
     const lean = c.yesRate >= 70 ? `<span class="fwoff">慣性放行（${c.yesRate}% 投可決）</span>`
       : c.yesRate <= 30 ? `<span class="fwoff">慣性擋案（僅 ${c.yesRate}% 投可決）</span>`
       : `<span class="fwdim">立場平衡（${c.yesRate}% 投可決）</span>`;
-    return `<div class="fw-row"><span class="fwk">${esc(u.name)}</span>　<span class="fwv">站對邊 ${c.hitRate}%</span>　${oc}　${lean}　<span class="fwdim">${c.n} 案（平均自稱 ${c.avgConf}% 信心）</span></div>`;
+    return `<div class="fw-row"><span class="fwk">${esc(u.name)}</span>　<span class="fwv">判對 ${c.hitRate}%<span class="gloss">（事後回頭看，站對邊的比例）</span></span>　${oc}　${lean}　<span class="fwdim">${c.n} 案（平均自稱 ${c.avgConf}% 信心）</span></div>`;
   }).join("");
 }
 

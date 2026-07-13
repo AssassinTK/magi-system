@@ -83,6 +83,7 @@ details summary::after{content:"▸";color:var(--dim)}
 details[open] summary::after{content:"▾"}
 details .body{padding:0 12px 12px;font-size:12.5px;line-height:1.8;color:var(--text)}
 .body .sec{margin-top:10px;color:var(--gold);font-size:11px;letter-spacing:1px}
+.gloss{color:#5f5a50;font-size:10px;letter-spacing:0;font-weight:normal}
 .body .src{color:var(--dim);font-size:10px}
 .board-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #222;padding:9px 0;font-size:12px;align-items:center;flex-wrap:wrap}
 .board-row .bname{color:var(--orange);letter-spacing:1px}
@@ -147,7 +148,7 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div class="expo">
     <div class="elab">目前總暴險 / EXPOSURE</div>
     <div class="eval" id="ex-total">—</div>
-    <div class="esub" id="ex-total-sub">Σ 機率 × 損失（未判定案）</div>
+    <div class="esub" id="ex-total-sub">所有未判定風險的「機率 × 損失」加總</div>
   </div>
   <div class="expo">
     <div class="elab">待判定風險 / OPEN</div>
@@ -162,8 +163,8 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </div>
 
 <div class="queue-box">
-  <div class="qtitle">行動佇列 / ACTION QUEUE　依「期望損失」排序</div>
-  <div class="qhint">風險與決策的關聯就在這裡：機率 × 損失 = 這件事值得你花多少注意力。排最上面的先處理；每筆附恐懼腦的絆線與理性腦的干預點，照著做就好，不用重新想。</div>
+  <div class="qtitle">行動佇列 / ACTION QUEUE　<span class="gloss">依「期望損失」排序（＝機率 × 可能賠的錢）</span></div>
+  <div class="qhint">風險與決策的關聯就在這裡：一件事值不值得你花注意力，看的不是它有多可怕，而是「機率 × 可能賠的錢」。排最上面的先處理。每筆附恐懼腦的預警線與理性腦的下手點，照著做就好，不用重新想一遍。</div>
   <div id="queue"></div>
 </div>
 
@@ -321,11 +322,11 @@ function render(){
         <div class="qq"><span class="rank">${i+1}.</span>${catTagHtml(p.q)}<span class="tag ${jd.cls}">${jd.t}</span> #${String(p.no).padStart(3,"0")} ${esc(p.q)}</div>
         <div class="qnums">
           <span>機率 <b class="qp">${p.agg?p.agg.median:"?"}%</b></span>
-          <span>期望損失 <b>${x.ex!=null?fmtMoney(x.ex)+" 元":"未估"}</b>${p.agg&&p.agg.evLoss?`<span style="color:var(--dim)">（損失 ${fmtMoney(p.agg.evLoss)}）</span>`:""}</span>
+          <span>期望損失 <b>${x.ex!=null?fmtMoney(x.ex)+" 元":"未估"}</b>${p.agg&&p.agg.evLoss?`<span style="color:var(--dim)">（萬一真的發生要賠 ${fmtMoney(p.agg.evLoss)}）</span>`:""}</span>
           <span>期限 <span class="${od?"overdue":""}">${p.deadline||"未定"}${od?" 已到期":""}</span></span>
         </div>
-        ${trip?`<div class="qact">⚡ 絆線：${esc(trip)}</div>`:""}
-        ${lever?`<div class="qact"><span class="lv">⚙ 干預點：${esc(lever)}</span></div>`:""}
+        ${trip?`<div class="qact">⚡ 絆線 <span class="gloss">（＝出現這個訊號就立刻行動，不用臨場想）</span><br>${esc(trip)}</div>`:""}
+        ${lever?`<div class="qact"><span class="lv">⚙ 干預點 <span class="gloss">（＝最該下手的地方）</span><br>${esc(lever)}</span></div>`:""}
       </div>`;
     }).join("");
   }
@@ -371,7 +372,7 @@ function render(){
     trust.innerHTML = `
       <div style="padding-top:8px">目前校準最佳：<b style="color:var(--gold)">${BRAIN_LABEL[best.k]||best.k}</b>（Brier ${best.avg.toFixed(3)}，${best.n} 筆）${enough?"":"<span style='color:var(--dim);font-size:10px'>——樣本仍少，僅供參考</span>"}</div>
       ${rows.map(r=>`<div class="board-row"><span class="bname">${BRAIN_LABEL[r.k]||r.k}</span><span class="bscore">Brier ${r.avg.toFixed(3)}</span><span style="color:var(--dim)">${r.n} 筆</span></div>`).join("")}
-      <div style="color:var(--dim);font-size:10px;margin-top:8px">用法：三腦分歧時，加權相信校準好的那顆；某顆腦長期 Brier > 0.25，它的票要打折。</div>`;
+      <div style="color:var(--dim);font-size:10px;margin-top:8px">用法：三腦意見分歧時，多信準度好的那顆；某顆腦的準度長期比 0.25（丟銅板）還差，它的票就要打折看。</div>`;
   }
 }
 
