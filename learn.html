@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050508">
+<title>MAGI LEARN — 學習紀錄</title>
+<style>
+:root{
+  --bg:#050508;
+  --panel:#0d0d14;
+  --orange:#ff7b00;
+  --orange-dim:#a34f00;
+  --green:#33ff77;
+  --red:#ff3344;
+  --yellow:#ffcc33;
+  --cyan:#38bdf8;
+  --gold:#d4b46a;
+  --purple:#a78bfa;
+  --text:#e8e0d0;
+  --dim:#7a7468;
+  --mono:"SF Mono","JetBrains Mono","Courier New",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(167,139,250,.012) 3px,rgba(167,139,250,.012) 4px)}
+.wrap{max-width:860px;margin:0 auto}
+header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+header h1{font-size:18px;color:var(--purple);letter-spacing:4px}
+header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
+.hstat{font-size:10px;color:var(--dim);text-align:right;line-height:1.6;letter-spacing:1px}
+.tabs{display:flex;gap:6px;margin:14px 0 0;flex-wrap:wrap}
+.tabs a{flex:1;min-width:120px;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:11.5px;letter-spacing:1px;padding:10px 6px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
+.tabs a.on{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.08)}
+.tabs a:not(.on):hover{border-color:var(--orange-dim);color:var(--orange)}
+
+.intro{border:1px solid #2a2a33;background:var(--panel);padding:12px 14px;margin:14px 0;font-size:11.5px;color:var(--dim);line-height:1.9}
+.intro b{color:var(--text);font-weight:normal}
+
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.card{border:2px solid var(--orange-dim);background:var(--panel);padding:12px;text-align:center;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.card .lab{font-size:10px;color:var(--dim);letter-spacing:2px}
+.card .val{font-size:26px;color:var(--purple);margin-top:6px;letter-spacing:1px}
+.card .val small{font-size:10px;color:var(--dim);letter-spacing:0}
+.card .sub2{font-size:10px;color:var(--dim);margin-top:2px}
+
+.board{border:1px solid var(--orange-dim);background:var(--panel);padding:12px 14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.board .bt{font-size:11px;color:var(--purple);letter-spacing:2px;margin-bottom:4px}
+.board .bh{font-size:10px;color:var(--dim);line-height:1.7;margin-bottom:8px}
+.brow{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #1c1c26;padding:8px 0;font-size:12px;align-items:center;flex-wrap:wrap}
+.brow .n{color:var(--cyan);letter-spacing:1px}
+.brow .warn{color:var(--red)}
+.brow .ok{color:var(--green)}
+.brow .dim{color:var(--dim);font-size:11px}
+
+details{border:1px solid #2a2a33;margin-bottom:8px;background:var(--panel)}
+details summary{cursor:pointer;padding:10px 12px;font-size:12px;letter-spacing:1px;list-style:none;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▸";color:var(--dim)}
+details[open] summary::after{content:"▾"}
+details .body{padding:0 12px 12px;font-size:12.5px;line-height:1.9;color:var(--text)}
+.sec{margin-top:12px;color:var(--orange);font-size:11px;letter-spacing:1px}
+.gloss{color:#5f5a50;font-size:10px;letter-spacing:0}
+.tag{font-size:10px;padding:1px 7px;border:1px solid;white-space:nowrap}
+.tag.ok{color:var(--green);border-color:var(--green)}
+.tag.bad{color:var(--red);border-color:var(--red)}
+.tag.dim{color:var(--dim);border-color:#444}
+.date{color:var(--dim);font-size:10.5px}
+
+/* 教訓集錦——這頁的重點 */
+.lesson-item{border-left:3px solid var(--gold);padding:10px 0 10px 12px;margin-bottom:14px}
+.lesson-item .lreveal{font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:5px}
+.lesson-item .ltext{font-size:13.5px;color:var(--text);line-height:2}
+.lesson-item .lq{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.7}
+
+.qbox{border-left:2px solid #2a2a33;padding-left:10px;margin-top:6px}
+.qline{font-size:12px;color:var(--dim);line-height:1.9}
+.qline b{color:var(--text);font-weight:normal}
+.qline .hit{color:var(--green)}
+.qline .miss{color:var(--red)}
+.empty{padding:20px 12px;font-size:11.5px;color:var(--dim);line-height:2;text-align:center}
+footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
+
+#lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#lockscreen.hide{display:none}
+.lockbox{width:100%;max-width:380px;border:2px solid var(--orange-dim);background:var(--panel);padding:22px 20px;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.lockbox h2{font-size:15px;color:var(--purple);letter-spacing:5px;text-align:center;margin-bottom:4px}
+.lockbox .lsub{font-size:10px;color:var(--dim);letter-spacing:2px;text-align:center;margin-bottom:18px}
+.lockbox label{font-size:11px;color:var(--purple);letter-spacing:2px;display:block;margin-bottom:6px}
+#lock-pass{width:100%;background:#0a0a10;border:1px solid #333;color:var(--text);font-family:var(--mono);font-size:15px;padding:10px;letter-spacing:2px}
+#lock-pass:focus{outline:none;border-color:var(--purple)}
+.lock-trust{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:10px;color:var(--dim);line-height:1.6}
+#lock-go{width:100%;background:var(--purple);border:none;color:#000;font-family:var(--mono);font-size:14px;font-weight:bold;letter-spacing:3px;padding:11px;cursor:pointer}
+#lock-err{color:var(--red);font-size:11px;margin-top:10px;min-height:14px}
+
+@media(max-width:560px){
+  .cards{grid-template-columns:1fr}
+  header h1{font-size:15px}
+  details summary{min-height:44px;padding:12px;display:flex;align-items:center}
+  .tabs a{min-width:calc(50% - 3px)}
+}
+</style>
+</head>
+<body>
+
+<div id="lockscreen">
+  <div class="lockbox">
+    <h2>LEARN ACCESS</h2>
+    <div class="lsub">通行碼驗證 · 同 MAGI 主系統通行碼</div>
+    <label>PASSPHRASE</label>
+    <input type="password" id="lock-pass" autocomplete="off" spellcheck="false">
+    <div class="lock-trust">
+      <input type="checkbox" id="lock-trust">
+      <label for="lock-trust" style="margin:0;color:var(--dim);font-size:10px;letter-spacing:0;display:inline">信任此裝置（下次免輸入通行碼）</label>
+    </div>
+    <button id="lock-go">解鎖 UNLOCK</button>
+    <div id="lock-err"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>MAGI LEARN</h1>
+    <div class="sub">學習紀錄 · 每日歷史考卷</div>
+  </div>
+  <div class="hstat" id="hstat">讀取中...</div>
+</header>
+
+<div class="tabs">
+  <a href="index.html">三賢人審議</a>
+  <a href="risk.html">風險預測</a>
+  <a href="nexus.html">風險×決策</a>
+  <a href="learn.html" class="on">學習紀錄</a>
+</div>
+
+<div class="intro">
+  每天挑一個<b>結果已知的歷史事件</b>，同時考兩套系統：RISK 預測「會不會發生」、MAGI 決策「該不該做」。
+  題目全部匿名化（拿掉「挑戰者號」「古巴」這類詞），模型無法背答案，只能真的推理。<br>
+  歷史的結果早就發生了，所以<b>可以立刻對答案</b>——這是唯一能回答「這套系統到底準不準」的方法。
+  下面的分數是系統的成績；<b>教訓才是你的收穫</b>。
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="lab">RISK · 預測判對率</div>
+    <div class="val" id="c-risk">—</div>
+    <div class="sub2" id="c-risk-sub"></div>
+  </div>
+  <div class="card">
+    <div class="lab">MAGI · 決策判對率</div>
+    <div class="val" id="c-magi">—</div>
+    <div class="sub2" id="c-magi-sub"></div>
+  </div>
+  <div class="card">
+    <div class="lab">已考題數</div>
+    <div class="val" id="c-n">—</div>
+    <div class="sub2" id="c-n-sub"></div>
+  </div>
+</div>
+
+<div class="board">
+  <div class="bt">三腦準度 / BRAINS</div>
+  <div class="bh">Brier 分數＝準度，越低越準。0＝神準、0.25＝跟丟銅板一樣、1＝完全反了。</div>
+  <div id="brains"></div>
+</div>
+
+<div class="board">
+  <div class="bt">三賢人站對邊率 / SAGES</div>
+  <div class="bh">判決書的預測成真＝跟裁定同邊的賢人站對；未成真＝當初唱反調的人反而站對。自稱信心遠高於實際判對率＝信賴度虛高。</div>
+  <div id="sages"></div>
+</div>
+
+<details id="lessons-box" open>
+  <summary>教訓集錦 / LESSONS <span class="tag dim" id="lesson-count"></span></summary>
+  <div class="body" id="lessons"></div>
+</details>
+
+<details id="history-box">
+  <summary>歷次考卷 / EXAMS <span class="tag dim" id="exam-count"></span></summary>
+  <div class="body" id="exams"></div>
+</details>
+
+<footer>NERV — HISTORY IS THE ONLY ANSWER KEY WE HAVE.</footer>
+</div>
+
+<script>
+const VAULT_SALT = "HZCjnMhAaUn1KjvJ6gmNxQ==";
+const VAULT_IV = "1gA4DVCCPfcoa5T0";
+const VAULT_ITER = 250000;
+const SUPABASE_URL = "https://gaouowojtmxwgpcetzmo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdhb3Vvd29qdG14d2dwY2V0em1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODU2NjMsImV4cCI6MjA5OTA2MTY2M30.DCTE07J4A5U1seQh_ZP3QAwKjgOHBFxlqz-8BBVOKPw";
+let SUPABASE_SECRET = "";
+let ROWS = [];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+async function sbRpc(fn, args){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method:"POST",
+    headers:{ apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, "Content-Type":"application/json" },
+    body: JSON.stringify(args)
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+// 成績只計「同一模型」——不同模型能力天差地別，混在一起算平均會得出無意義的數字
+function summarize(rows, model){
+  const same = rows.filter(r=>r.model===model);
+  const riskOk = same.filter(r=>r.risk && r.risk.correct).length;
+  const magiOk = same.filter(r=>r.magi && r.magi.correct).length;
+  const brains = {}, sages = {};
+  same.forEach(r=>{
+    Object.entries((r.risk && r.risk.briers) || {}).forEach(([k,v])=>{
+      if(typeof v!=="number") return;
+      brains[k] = brains[k] || { n:0, sum:0 };
+      brains[k].n++; brains[k].sum += v;
+    });
+    ((r.magi && r.magi.rows) || []).forEach(x=>{
+      if(!x.vote || x.hit===null || x.hit===undefined) return;
+      sages[x.name] = sages[x.name] || { n:0, hit:0, conf:0 };
+      sages[x.name].n++;
+      if(x.hit) sages[x.name].hit++;
+      sages[x.name].conf += x.conf || 50;
+    });
+  });
+  Object.values(brains).forEach(v=>{ v.brier = v.sum / v.n; });
+  Object.values(sages).forEach(v=>{ v.rate = Math.round(v.hit/v.n*100); v.conf = Math.round(v.conf/v.n); });
+  return {
+    n: same.length,
+    riskAcc: same.length ? Math.round(riskOk/same.length*100) : 0,
+    magiAcc: same.length ? Math.round(magiOk/same.length*100) : 0,
+    brains, sages
+  };
+}
+
+function render(){
+  if(!ROWS.length){
+    $("hstat").innerHTML = "尚無考卷紀錄";
+    $("brains").innerHTML = `<div class="empty">飛輪還沒開始轉。<br>考卷每天在你電腦閒置時自動出一題，成績會同步到這裡。</div>`;
+    $("sages").innerHTML = "";
+    $("lessons").innerHTML = `<div class="empty">還沒有累積任何教訓。</div>`;
+    $("exams").innerHTML = "";
+    return;
+  }
+  // 以最新一筆的模型為「當前模型」
+  const model = ROWS[0].model;
+  const s = summarize(ROWS, model);
+  const others = {};
+  ROWS.filter(r=>r.model!==model).forEach(r=>{ others[r.model] = (others[r.model]||0)+1; });
+  const otherTxt = Object.entries(others).map(([m,n])=>`${m} ${n} 題`).join("、");
+
+  $("hstat").innerHTML = `當前模型 <span style="color:var(--cyan)">${esc(model)}</span><br>${otherTxt ? `另有 ${esc(otherTxt)}（不混計）` : "全部同一模型"}`;
+  $("c-risk").innerHTML = `${s.riskAcc}<small>%</small>`;
+  $("c-risk-sub").textContent = `${s.n} 題`;
+  $("c-magi").innerHTML = `${s.magiAcc}<small>%</small>`;
+  $("c-magi-sub").textContent = `${s.n} 題`;
+  $("c-n").innerHTML = `${ROWS.length}<small> 題</small>`;
+  $("c-n-sub").textContent = otherTxt ? "含其他模型" : "";
+
+  const bRows = Object.entries(s.brains).sort((a,b)=>a[1].brier-b[1].brier);
+  $("brains").innerHTML = bRows.length ? bRows.map(([k,v],i)=>{
+    const bad = v.brier > 0.25;
+    const note = v.brier<0.1 ? "校準優異" : v.brier<0.2 ? "比丟銅板準" : v.brier<=0.25 ? "跟丟銅板差不多" : "比丟銅板還不準";
+    return `<div class="brow">
+      <span class="n">${i===0?"👑 ":""}${esc(k.toUpperCase())}</span>
+      <span class="${bad?"warn":"ok"}">Brier ${v.brier.toFixed(3)}</span>
+      <span class="dim">${v.n} 題　${note}</span>
+    </div>`;
+  }).join("") : `<div class="empty">尚無資料</div>`;
+
+  const sRows = Object.entries(s.sages).sort((a,b)=>b[1].rate-a[1].rate);
+  $("sages").innerHTML = sRows.length ? sRows.map(([k,v])=>{
+    const gap = v.conf - v.rate;
+    return `<div class="brow">
+      <span class="n">${esc(k)}</span>
+      <span class="${v.rate<50?"warn":"ok"}">站對邊 ${v.rate}%</span>
+      <span class="dim">${v.n} 題　平均自稱 ${v.conf}% 信心${gap>15?`　<span class="warn">虛高 ${gap} 點</span>`:""}</span>
+    </div>`;
+  }).join("") : `<div class="empty">尚無資料</div>`;
+
+  // 教訓集錦——這頁的重點：分數是系統的，教訓是阿桑的
+  const seen = new Set();
+  const lessons = ROWS.filter(r=>{
+    if(!r.lesson || seen.has(r.event_id)) return false;
+    seen.add(r.event_id);
+    return true;
+  });
+  $("lesson-count").textContent = `${lessons.length} 則`;
+  $("lessons").innerHTML = lessons.map(r=>`
+    <div class="lesson-item">
+      <div class="lreveal">${esc(r.reveal||"")}</div>
+      <div class="ltext">${esc(r.lesson)}</div>
+      <div class="lq">當時的問題：${esc((r.magi&&r.magi.q)||"")}</div>
+    </div>`).join("");
+
+  $("exam-count").textContent = `${ROWS.length} 場`;
+  $("exams").innerHTML = ROWS.map(r=>{
+    const rk = r.risk||{}, mg = r.magi||{};
+    const brainLines = (rk.rows||[]).map(x=> x.p!=null
+      ? `<div class="qline"><b>${esc(x.name)}</b>：${x.p}%　<span class="dim">Brier ${((rk.briers||{})[x.brain] ?? 0).toFixed(3)}</span></div>`
+      : `<div class="qline"><b>${esc(x.name)}</b>：離線</div>`).join("");
+    const sageLines = (mg.rows||[]).map(x=> x.vote
+      ? `<div class="qline"><b>${esc(x.name)}</b>：${esc(x.vote)}（${x.conf}%）${x.hit===null||x.hit===undefined?"":x.hit?'<span class="hit">✓ 站對</span>':'<span class="miss">✗ 站錯</span>'}</div>`
+      : `<div class="qline"><b>${esc(x.name)}</b>：失敗</div>`).join("");
+    return `<details>
+      <summary>
+        <span><span class="date">${esc(r.quiz_date)}</span>　${esc(r.reveal||r.event_id)}</span>
+        <span>
+          <span class="tag ${rk.correct?"ok":"bad"}">RISK ${rk.correct?"判對":"判錯"}</span>
+          <span class="tag ${mg.correct?"ok":"bad"}">MAGI ${mg.correct?"判對":"判錯"}</span>
+        </span>
+      </summary>
+      <div class="body">
+        <div class="sec">RISK · 預測 <span class="gloss">＝會不會發生</span></div>
+        <div>${esc(rk.q||"")}</div>
+        <div style="color:var(--cyan);margin-top:4px">裁定「${esc(rk.judge||"—")}」總機率 ${rk.agg??"—"}%　→　真實：<b>${esc(rk.truth||"")}</b></div>
+        <div class="qbox">${brainLines}</div>
+        <div class="sec">MAGI · 決策 <span class="gloss">＝該不該做</span></div>
+        <div>${esc(mg.q||"")}</div>
+        <div style="color:var(--orange);margin-top:4px">裁定「${esc(mg.verdict||"—")}」　→　事後正解：<b>${esc(mg.truth||"")}</b></div>
+        <div class="qbox">${sageLines}</div>
+        <div class="sec">教訓</div>
+        <div style="color:var(--gold)">${esc(r.lesson||"")}</div>
+      </div>
+    </details>`;
+  }).join("");
+}
+
+async function load(){
+  try{
+    const rows = await sbRpc("quiz_load_results", { p_secret: SUPABASE_SECRET, p_limit: 200 });
+    ROWS = Array.isArray(rows) ? rows : [];
+    render();
+  }catch(e){
+    $("hstat").innerHTML = `<span style="color:var(--red)">讀取失敗：${esc(e.message)}</span>`;
+    $("brains").innerHTML = `<div class="empty">讀不到雲端學習紀錄。<br>schema 貼了嗎？（scripts/supabase-quiz-schema.sql）</div>`;
+  }
+}
+
+// ━━ 解鎖（與 MAGI 共用 vault 與信任機制；本頁只需 supabase_secret）━━
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+async function deriveVaultKey(passphrase){
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), {name:"PBKDF2"}, false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt: b64ToBuf(VAULT_SALT), iterations: VAULT_ITER, hash:"SHA-256"},
+    baseKey, {name:"AES-GCM", length:256}, false, ["decrypt"]
+  );
+}
+let VAULT_CIPHER = null;
+async function fetchCipher(){
+  // vault 密文只存在 risk.html 原始碼裡，抓同目錄頁面拆出來，避免多份密文不同步
+  const r = await fetch("risk.html");
+  const html = await r.text();
+  const m = html.match(/cipher:\s*"([^"]+)"/);
+  if(!m) throw new Error("cipher not found");
+  return m[1];
+}
+async function decryptVaultWithKey(key){
+  if(!VAULT_CIPHER) VAULT_CIPHER = await fetchCipher();
+  const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv: b64ToBuf(VAULT_IV)}, key, b64ToBuf(VAULT_CIPHER));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function applyPayload(p){ SUPABASE_SECRET = p.supabase_secret || ""; }
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open("magi-vault-db", 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore("keys"); };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function storeTrustKey(key){
+  const db = await idbOpen();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction("keys","readwrite");
+    tx.objectStore("keys").put(key, "trustkey");
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function loadTrustKey(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve)=>{
+      const tx = db.transaction("keys","readonly");
+      const req = tx.objectStore("keys").get("trustkey");
+      req.onsuccess = ()=>resolve(req.result || null);
+      req.onerror = ()=>resolve(null);
+    });
+  }catch(e){ return null; }
+}
+function hideLockscreen(){ $("lockscreen").classList.add("hide"); }
+const THROTTLE_KEY = "magi_lock_state";
+function getLockState(){
+  try{
+    const s = JSON.parse(localStorage.getItem(THROTTLE_KEY) || "{}");
+    return { fails: s.fails||0, until: s.until||0 };
+  }catch(e){ return { fails:0, until:0 }; }
+}
+function setLockState(s){ try{ localStorage.setItem(THROTTLE_KEY, JSON.stringify(s)); }catch(e){} }
+async function tryUnlock(pass){
+  const st = getLockState();
+  if(st.until > Date.now()){
+    $("lock-err").textContent = `嘗試過多，請等待 ${Math.ceil((st.until-Date.now())/1000)} 秒`;
+    return;
+  }
+  try{
+    const key = await deriveVaultKey(pass);
+    applyPayload(await decryptVaultWithKey(key));
+    if($("lock-trust").checked){
+      try{ await storeTrustKey(await deriveVaultKey(pass)); }catch(e){}
+    }
+    setLockState({fails:0, until:0});
+    hideLockscreen();
+    load();
+  }catch(e){
+    const fails = st.fails + 1;
+    const until = fails >= 5 ? Date.now() + Math.min(30000 * Math.pow(2, fails-5), 300000) : 0;
+    setLockState({fails, until});
+    $("lock-err").textContent = until > Date.now() ? "嘗試過多，請稍候再試" : "通行碼錯誤";
+    $("lock-pass").value = "";
+    $("lock-pass").focus();
+  }
+}
+$("lock-go").onclick = ()=>{ const p = $("lock-pass").value; if(p) tryUnlock(p); };
+$("lock-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") $("lock-go").click(); });
+
+(async function init(){
+  const tk = await loadTrustKey();
+  if(tk){
+    try{
+      applyPayload(await decryptVaultWithKey(tk));
+      hideLockscreen();
+      load();
+      return;
+    }catch(e){}
+  }
+  $("lock-pass").focus();
+})();
+</script>
+</body>
+</html>

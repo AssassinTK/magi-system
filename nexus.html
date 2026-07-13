@@ -27,8 +27,8 @@ header{border:1px solid var(--orange-dim);padding:10px 14px;display:flex;justify
 header h1{font-size:18px;color:var(--gold);letter-spacing:4px}
 header .sub{font-size:10px;color:var(--dim);letter-spacing:2px}
 .hstat{font-size:10px;color:var(--dim);text-align:right;line-height:1.6;letter-spacing:1px}
-.tabs{display:flex;gap:8px;margin:14px 0 0}
-.tabs a{flex:1;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:2px;padding:10px;min-height:20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
+.tabs{display:flex;gap:6px;margin:14px 0 0;flex-wrap:wrap}
+.tabs a{flex:1;min-width:120px;text-align:center;border:1px solid #2a2a33;color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:2px;padding:10px;min-height:20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));transition:border-color .2s,color .2s}
 .tabs a.on{border-color:var(--gold);color:var(--gold);background:rgba(212,180,106,.08)}
 .tabs a:not(.on):hover{border-color:var(--orange-dim);color:var(--orange)}
 
@@ -139,9 +139,10 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </header>
 
 <div class="tabs">
-  <a href="index.html">三賢人審議 MAGI</a>
-  <a href="risk.html">風險預測 RISK</a>
-  <a href="nexus.html" class="on">風險×決策 NEXUS</a>
+  <a href="index.html">三賢人審議</a>
+  <a href="risk.html">風險預測</a>
+  <a href="nexus.html" class="on">風險×決策</a>
+  <a href="learn.html">學習紀錄</a>
 </div>
 
 <div class="expo-grid">
