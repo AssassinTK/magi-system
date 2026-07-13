@@ -184,6 +184,24 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .jd-line b.t-cyan{color:var(--cyan)}
 .jd-line b.t-orange{color:var(--orange)}
 .jd-line b.t-yellow{color:var(--yellow)}
+.share-btn{background:none;border:1px solid var(--orange-dim);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:28px;margin-left:6px}
+.share-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.share-btn:active{transform:scale(.97);opacity:.85}
+.archive-btn{background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;cursor:pointer;white-space:nowrap;flex-shrink:0;min-height:28px;margin-left:6px}
+.archive-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.archive-btn:active{transform:scale(.97);opacity:.85}
+.hist-item.archived{opacity:.55}
+.tag.archived-tag{color:var(--dim);border-color:#444}
+.share-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom));overflow-y:auto}
+.share-overlay.show{display:flex;flex-direction:column;align-items:center;gap:14px}
+.share-card-wrap{border:1px solid var(--orange-dim);background:var(--panel);padding:8px;max-width:340px;width:100%}
+.share-card-wrap canvas{width:100%;height:auto;display:block;background:#050508}
+.share-actions{display:flex;flex-direction:column;gap:8px;max-width:340px;width:100%}
+.share-actions button{background:none;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--mono);font-size:12px;letter-spacing:2px;padding:12px;cursor:pointer;transition:transform .08s ease,opacity .08s ease;min-height:44px}
+.share-actions button:active{transform:scale(.97);opacity:.85}
+.share-actions button.primary{background:var(--cyan);color:#000;font-weight:bold}
+.share-actions #share-close{border-color:#444;color:var(--dim)}
+.share-toast{font-size:11px;color:var(--green);text-align:center;min-height:16px}
 
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
 .settings-grid label{font-size:10px;color:var(--dim);display:block;margin-bottom:4px}
@@ -425,6 +443,9 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
       <option value="未發生">未發生</option>
       <option value="無法判定">無法判定</option>
     </select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);flex:0 0 auto;white-space:nowrap">
+      <input type="checkbox" id="hist-show-archived" style="width:auto;flex:none">顯示已封存
+    </label>
   </div>
   <div id="hist"></div>
 </details>
@@ -442,6 +463,17 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 </details>
 
 <footer>NERV RISK DIVISION — PROBABILITY IS NOT FATE.</footer>
+</div>
+
+<div class="share-overlay" id="share-overlay">
+  <div class="share-card-wrap"><canvas id="share-canvas"></canvas></div>
+  <div class="share-actions">
+    <button class="primary" id="share-dl">下載 9:16 圖片</button>
+    <button id="share-native" style="display:none">分享圖片…</button>
+    <button id="share-flex">複製 LINE Flex JSON</button>
+    <div class="share-toast" id="share-toast"></div>
+    <button id="share-close">關閉</button>
+  </div>
 </div>
 
 <script>
@@ -1438,6 +1470,7 @@ function renderHistory(){
     return cat==="work" ? k.startsWith("work") : k===cat;
   });
   if(status) preds = preds.filter(p=> status==="pending" ? !p.outcome : p.outcome===status);
+  if(!$("hist-show-archived").checked) preds = preds.filter(p=>!isArchived(p.no));   // 封存＝預設隱藏，資料還在
   if(!preds.length){ hist.innerHTML = `<div class="board-hint">${loadPreds().length?"沒有符合篩選條件的記錄。":"尚無預測記錄。"}</div>`; return; }
   hist.innerHTML = preds.map(p=>{
     const tag = p.outcome==="發生" ? `<span class="tag t-green">發生</span>`
@@ -1453,8 +1486,13 @@ function renderHistory(){
     const revTag = p.rev ? `<span class="tag t-cyan">修正×${p.rev}${p.prevMedian!=null?` ${p.prevMedian}→${p.agg?p.agg.median:"?"}%`:""}</span> ` : "";
     const jdLine = jd ? `<div class="sec">多數決裁定 <span class="gloss">＝機率≥55%投「會」、≤45%投「不會」，過半才成立</span></div>
         <div class="jd-line"><b class="${judgeTagCls(jd)}">${jd.judge}</b>　總機率 <b>${p.agg?p.agg.median:"?"}%</b>　<span class="gloss">（會 ${jd.yes}·不會 ${jd.no}·保留 ${jd.hold}）　${jd.tally}</span></div>` : "";
-    return `<details class="hist-item">
-      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,36))}${p.q.length>36?"…":""}</b> <span>${jTag}總機率 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}</span></summary>
+    const arch = isArchived(p.no);
+    const archTag = arch ? `<span class="tag archived-tag">已封存</span> ` : "";
+    const btns = `<button class="share-btn" onclick="sharePred(${p.no}, event)">分享</button>` +
+      (arch ? `<button class="archive-btn" onclick="unarchivePred(${p.no});event.preventDefault();event.stopPropagation()">取消封存</button>`
+            : `<button class="archive-btn" onclick="archivePred(${p.no});event.preventDefault();event.stopPropagation()">封存</button>`);
+    return `<details class="hist-item${arch?" archived":""}">
+      <summary><b>${catTagHtml(p.q)}#${String(p.no).padStart(3,"0")} ${esc(p.q.slice(0,32))}${p.q.length>32?"…":""}</b> <span>${archTag}${jTag}總機率 ${p.agg?p.agg.median+"%":"—"} ${revTag}${tag}${btns}</span></summary>
       <div class="body">
         <div class="sec">命題</div><div>${esc(p.q)}</div>
         ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
@@ -1465,6 +1503,333 @@ function renderHistory(){
       </div>
     </details>`;
   }).join("");
+}
+
+// ━━━━ 分享（9:16 圖片卡 + LINE Flex JSON）與封存 ━━━━
+// 手法沿用 MAGI 主系統：卡片高度隨內容自適應（最短 9:16，內容多就往下長）；
+// Flex 只產生 JSON 給阿桑自己複製貼出，不在公開頁面內嵌任何 LINE token。
+const JUDGE_COLOR = { "會發生":"#38bdf8", "不會發生":"#ff7b00", "無法裁定":"#ffcc33" };
+const CAT_COLOR_HEX = {
+  major:"#ff3344", love:"#ff7bc0", life:"#33ff77", general:"#7a7468",
+  work:"#ff7b00", "work:restaurant":"#ff7b00", "work:dev":"#38bdf8"
+};
+function catColorHex(cls){ return CAT_COLOR_HEX[catKey(cls)] || CAT_COLOR_HEX[cls.cat] || "#7a7468"; }
+function truncate(s, n){ s = String(s??""); return s.length>n ? s.slice(0,n)+"…" : s; }
+function hexAlpha(hex, a){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function predTimeStr(t){
+  try{ return new Date(t||Date.now()).toLocaleString("zh-TW"); }catch(e){ return ""; }
+}
+function wrapCanvasText(ctx, text, maxWidth){
+  const lines = [];
+  String(text||"").split("\n").forEach(raw=>{
+    let cur = "";
+    for(const ch of raw){
+      const test = cur + ch;
+      if(cur && ctx.measureText(test).width > maxWidth){ lines.push(cur); cur = ch; }
+      else cur = test;
+    }
+    lines.push(cur);
+  });
+  return lines;
+}
+// 呼應站內 clip-path 切角的視覺語言
+function notchedRect(ctx, x, y, w, h, n){
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+w-n, y);
+  ctx.lineTo(x+w, y+n);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x+n, y+h);
+  ctx.lineTo(x, y+h-n);
+  ctx.closePath();
+}
+// 挑指定腦的欄位（該腦沒有就換別的腦頂上）
+function pickField(p, brainId, field, sub){
+  const fs = (p.forecasts||[]).filter(f=>f.ok);
+  const has = f => sub ? (f[field] && f[field][sub]) : f[field];
+  const hit = fs.find(f=>f.brain===brainId && has(f)) || fs.find(has);
+  if(!hit) return "";
+  return sub ? (hit[field]||{})[sub] : hit[field];
+}
+
+// 畫卡片本體，回傳 y 游標（給 drawShareCard 算最終高度用）
+function drawShareBody(ctx, p, W){
+  const cls = classifyPred(p.q);
+  const catCol = catColorHex(cls);
+  const jd = judgeOfPred(p);
+  const jCol = jd ? (JUDGE_COLOR[jd.judge] || "#7a7468") : "#7a7468";
+  const fSans = `"PingFang TC","Heiti TC","Microsoft JhengHei",-apple-system,sans-serif`;
+  const fMono = `"SF Mono","JetBrains Mono","Courier New",monospace`;
+
+  let y = 130;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#38bdf8";
+  ctx.font = `bold 52px ${fMono}`;
+  ctx.fillText("MAGI RISK", 90, y);
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `24px ${fMono}`;
+  ctx.fillText("三人性腦 · 風險預測", 90, y+38);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#38bdf8";
+  ctx.font = `bold 44px ${fMono}`;
+  ctx.fillText(`#${String(p.no).padStart(3,"0")}`, W-90, y);
+  ctx.textAlign = "left";
+
+  y += 95;
+  const catLbl = catLabel(cls);
+  ctx.font = `26px ${fSans}`;
+  const catW = ctx.measureText(catLbl).width + 40;
+  ctx.strokeStyle = catCol;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(90, y, catW, 46);
+  ctx.fillStyle = catCol;
+  ctx.fillText(catLbl, 90+20, y+32);
+
+  y += 90;
+  ctx.strokeStyle = "#2a2a33";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W-90, y); ctx.stroke();
+
+  y += 66;
+  ctx.fillStyle = "#e8e0d0";
+  ctx.font = `40px ${fSans}`;
+  wrapCanvasText(ctx, truncate(p.q, 200), W-180).slice(0, 6).forEach(line=>{ ctx.fillText(line, 90, y); y += 56; });
+
+  // 裁定 + 總機率（大字框）
+  y += 26;
+  const vBoxH = 250;
+  ctx.fillStyle = hexAlpha(jCol, 0.08);
+  notchedRect(ctx, 90, y, W-180, vBoxH, 24); ctx.fill();
+  ctx.strokeStyle = jCol; ctx.lineWidth = 4;
+  notchedRect(ctx, 90, y, W-180, vBoxH, 24); ctx.stroke();
+  ctx.textAlign = "center";
+  ctx.fillStyle = jCol;
+  ctx.font = `bold 82px ${fSans}`;
+  ctx.fillText(jd ? jd.judge : "—", W/2, y+100);
+  ctx.fillStyle = "#e8e0d0";
+  ctx.font = `bold 54px ${fMono}`;
+  ctx.fillText(`總機率 ${p.agg?p.agg.median:"?"}%`, W/2, y+172);
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `24px ${fMono}`;
+  ctx.fillText(jd ? `會 ${jd.yes} · 不會 ${jd.no} · 保留 ${jd.hold}　${jd.tally}` : "", W/2, y+216);
+  ctx.textAlign = "left";
+  y += vBoxH + 50;
+
+  const section = (label, text, col)=>{
+    if(!text) return;
+    ctx.fillStyle = "#7a7468";
+    ctx.font = `22px ${fMono}`;
+    ctx.fillText(label, 90, y);
+    y += 42;
+    ctx.fillStyle = col || "#e8e0d0";
+    ctx.font = `28px ${fSans}`;
+    wrapCanvasText(ctx, text, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 40; });
+    y += 32;
+  };
+
+  if(p.agg){
+    const zoneTxt = `${zoneLabel(p.agg.zone)}（發生可能性 ${p.agg.likelihood} 級 × 影響嚴重度 ${p.agg.impact} 級）` +
+      (p.agg.evidenceGrade ? `　證據 ${p.agg.evidenceGrade}` : "");
+    section("風險等級", zoneTxt);
+  }
+  section("預警線（出現這個訊號就立刻行動）", pickField(p, "sentinel", "tripwire"), "#ffcc33");
+  section("最該下手的地方", pickField(p, "arbiter", "causal", "lever") || pickField(p, "gambler", "causal", "lever"), "#38bdf8");
+  if(p.deadline) section("判定期限", p.deadline);
+  if(p.outcome) section("實際結果", p.outcome, p.outcome==="發生" ? "#33ff77" : p.outcome==="未發生" ? "#ff3344" : "#7a7468");
+
+  // 道德經章句
+  if(p.agg){
+    const tao = laoTzu(p.agg);
+    wrapCanvasText(ctx, `「${tao.t}」${tao.w}`, W-230).forEach(line=>{
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(90, y-30, 6, 42);
+      ctx.fillStyle = "#d4b46a";
+      ctx.font = `28px ${fSans}`;
+      ctx.fillText(line, 116, y);
+      y += 44;
+    });
+    y += 28;
+  }
+
+  // 三腦各自推定
+  y += 6;
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `22px ${fMono}`;
+  ctx.fillText("三腦各自推定 / BRAINS", 90, y);
+  y += 20;
+  ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W-90, y); ctx.stroke();
+  y += 54;
+
+  (p.forecasts||[]).forEach(f=>{
+    const label = BRAIN_LABEL[f.brain||f.engine] || "?";
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = `bold 28px ${fMono}`;
+    ctx.fillText(label, 90, y);
+    if(f.ok){
+      const vote = probVote(f.probability);
+      const vc = vote==="會" ? "#38bdf8" : vote==="不會" ? "#ff7b00" : "#ffcc33";
+      ctx.fillStyle = "#e8e0d0";
+      ctx.font = `28px ${fMono}`;
+      ctx.fillText(`${f.probability}%（${f.ci_low}–${f.ci_high}）`, 400, y);
+      ctx.font = `26px ${fSans}`;
+      const tagW = ctx.measureText(vote).width + 34;
+      ctx.strokeStyle = vc; ctx.lineWidth = 2;
+      ctx.strokeRect(760, y-32, tagW, 44);
+      ctx.fillStyle = vc;
+      ctx.fillText(vote, 760+17, y);
+    }else{
+      ctx.fillStyle = "#7a7468";
+      ctx.font = `26px ${fMono}`;
+      ctx.fillText("離線", 400, y);
+    }
+    y += 70;
+  });
+
+  return y;
+}
+
+function drawShareCard(canvas, p){
+  const W = 1080;
+  const fMono = `"SF Mono","JetBrains Mono","Courier New",monospace`;
+  // 量測 pass：先在拋棄式 canvas 上畫一次，只為了知道內容需要多高
+  const scratch = document.createElement("canvas");
+  scratch.width = 1; scratch.height = 1;
+  const contentEndY = drawShareBody(scratch.getContext("2d"), p, W);
+  const H = Math.max(1920, Math.ceil(contentEndY) + 210);
+
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#0d5a7a";
+  ctx.lineWidth = 3;
+  notchedRect(ctx, 40, 40, W-80, H-80, 28);
+  ctx.stroke();
+
+  drawShareBody(ctx, p, W);
+
+  ctx.strokeStyle = "#2a2a33"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(90, H-160); ctx.lineTo(W-90, H-160); ctx.stroke();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7a7468";
+  ctx.font = `24px ${fMono}`;
+  ctx.fillText(predTimeStr(p.t), 90, H-108);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#0d5a7a";
+  ctx.fillText("MAGI RISK", W-90, H-108);
+  ctx.textAlign = "left";
+  return canvas;
+}
+
+// LINE Flex 規格陷阱：backgroundColor/cornerRadius/paddingAll 只有 box 吃，text 元件不支援 → 色塊一律用 box 包 text
+function buildFlexBubble(p){
+  const cls = classifyPred(p.q);
+  const jd = judgeOfPred(p);
+  const jCol = jd ? (JUDGE_COLOR[jd.judge] || "#7a7468") : "#7a7468";
+  const catColor = catColorHex(cls);
+  const brainRows = (p.forecasts||[]).map(f=>{
+    const label = BRAIN_LABEL[f.brain||f.engine] || "?";
+    if(!f.ok) return { type:"box", layout:"horizontal", margin:"sm", contents:[
+      { type:"text", text:label, size:"sm", color:"#38bdf8", flex:5 },
+      { type:"text", text:"離線", size:"sm", color:"#7a7468", flex:4, align:"end" }
+    ]};
+    const vote = probVote(f.probability);
+    const vc = vote==="會" ? "#38bdf8" : vote==="不會" ? "#ff7b00" : "#ffcc33";
+    return { type:"box", layout:"horizontal", margin:"sm", alignItems:"center", contents:[
+      { type:"text", text:label, size:"sm", color:"#38bdf8", flex:5 },
+      { type:"text", text:`${f.probability}%`, size:"sm", color:"#e8e0d0", flex:3, align:"end" },
+      { type:"box", layout:"vertical", flex:2, backgroundColor: vc, cornerRadius:"4px", paddingAll:"3px", margin:"sm",
+        contents:[{ type:"text", text: vote, size:"xxs", color:"#050508", align:"center", weight:"bold" }] }
+    ]};
+  });
+  const body = [
+    { type:"text", text: p.q||"", wrap:true, weight:"bold", color:"#e8e0d0", size:"md" },
+    { type:"box", layout:"vertical", backgroundColor: jCol, cornerRadius:"6px", paddingAll:"10px",
+      contents:[
+        { type:"text", text: jd ? jd.judge : "—", weight:"bold", size:"xl", align:"center", color:"#050508" },
+        { type:"text", text: `總機率 ${p.agg?p.agg.median:"?"}%`, size:"sm", align:"center", color:"#050508" }
+      ] },
+    { type:"separator", color:"#2a2a33" }
+  ];
+  const sec = (label, text, col)=>{
+    if(!text) return;
+    body.push({ type:"text", text: label, size:"xs", color:"#7a7468", margin:"md" });
+    body.push({ type:"text", text: String(text), wrap:true, size:"sm", color: col||"#e8e0d0", margin:"xs" });
+  };
+  if(p.agg) sec("風險等級", `${zoneLabel(p.agg.zone)}（可能性 ${p.agg.likelihood} × 影響 ${p.agg.impact}）${p.agg.evidenceGrade?`　證據 ${p.agg.evidenceGrade}`:""}`);
+  sec("預警線", pickField(p, "sentinel", "tripwire"), "#ffcc33");
+  sec("最該下手的地方", pickField(p, "arbiter", "causal", "lever") || pickField(p, "gambler", "causal", "lever"), "#38bdf8");
+  if(p.deadline) sec("判定期限", p.deadline);
+  if(p.outcome) sec("實際結果", p.outcome, p.outcome==="發生"?"#33ff77":"#ff3344");
+  if(p.agg){
+    const tao = laoTzu(p.agg);
+    body.push({ type:"box", layout:"vertical", margin:"md", paddingAll:"10px", borderColor:"#38bdf8", borderWidth:"medium", cornerRadius:"4px",
+      contents:[{ type:"text", text:`「${tao.t}」${tao.w}`, wrap:true, size:"sm", color:"#d4b46a" }] });
+  }
+  body.push({ type:"separator", color:"#2a2a33", margin:"md" });
+  body.push(...brainRows);
+
+  return {
+    type:"bubble", size:"giga",
+    header:{ type:"box", layout:"vertical", backgroundColor:"#050508", paddingAll:"16px", spacing:"sm",
+      contents:[
+        { type:"text", text:`MAGI RISK #${String(p.no).padStart(3,"0")}`, color:"#38bdf8", weight:"bold", size:"md" },
+        { type:"box", layout:"vertical", backgroundColor: catColor, cornerRadius:"4px", paddingAll:"3px", width:"84px",
+          contents:[{ type:"text", text: catLabel(cls), size:"xxs", color:"#050508", align:"center" }] }
+      ] },
+    body:{ type:"box", layout:"vertical", backgroundColor:"#0d0d14", paddingAll:"16px", spacing:"md", contents: body },
+    footer:{ type:"box", layout:"horizontal", backgroundColor:"#050508", paddingAll:"12px",
+      contents:[
+        { type:"text", text: predTimeStr(p.t), size:"xs", color:"#7a7468" },
+        { type:"text", text:"MAGI RISK", size:"xs", color:"#0d5a7a", align:"end" }
+      ] }
+  };
+}
+function buildFlexMessage(p){
+  const jd = judgeOfPred(p);
+  return { type:"flex", altText:`MAGI RISK #${String(p.no).padStart(3,"0")} ${truncate(p.q,40)} → ${jd?jd.judge:"—"} ${p.agg?p.agg.median+"%":""}`, contents: buildFlexBubble(p) };
+}
+
+// 封存：純本機清單，不刪資料、不動案號、不碰 Supabase（同 MAGI 的設計）
+function loadArchivedNos(){
+  try{ const a = JSON.parse(localStorage.getItem("risk_archived_nos")||"[]"); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function isArchived(no){ return loadArchivedNos().includes(no); }
+function archivePred(no){
+  const nos = loadArchivedNos();
+  if(!nos.includes(no)) nos.push(no);
+  localStorage.setItem("risk_archived_nos", JSON.stringify(nos));
+  renderAllLists();
+  clog(`已封存 #${String(no).padStart(3,"0")}（資料保留，隨時可取消封存）`, "ln-ok");
+}
+function unarchivePred(no){
+  const nos = loadArchivedNos().filter(n=>n!==no);
+  localStorage.setItem("risk_archived_nos", JSON.stringify(nos));
+  renderAllLists();
+  clog(`已取消封存 #${String(no).padStart(3,"0")}`, "ln-ok");
+}
+
+let shareTarget = null;
+function sharePred(no, ev){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  const p = loadPreds().find(x=>x && x.no===no);
+  if(!p) return;
+  shareTarget = p;
+  drawShareCard($("share-canvas"), p);
+  $("share-toast").textContent = "";
+  $("share-overlay").classList.add("show");
+  $("share-native").style.display = (navigator.canShare && navigator.share) ? "block" : "none";
+}
+function closeShareModal(){
+  $("share-overlay").classList.remove("show");
+  shareTarget = null;
 }
 
 // 飛輪儀表：讓阿桑看得到「飛輪轉了幾圈、下次會注入什麼」
@@ -1561,6 +1926,38 @@ function boot(){
   $("gate-submit").onclick = gateSubmit;
   $("gate-anchor").onclick = gateAnchor;
   $("gate-cancel").onclick = gateCancel;
+  $("hist-show-archived").onchange = renderHistory;
+  $("share-close").onclick = closeShareModal;
+  $("share-overlay").addEventListener("click", e=>{ if(e.target.id === "share-overlay") closeShareModal(); });
+  $("share-dl").onclick = ()=>{
+    if(!shareTarget) return;
+    $("share-canvas").toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `MAGI-RISK-${String(shareTarget.no).padStart(3,"0")}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
+  $("share-native").onclick = ()=>{
+    if(!shareTarget) return;
+    $("share-canvas").toBlob(async blob=>{
+      const file = new File([blob], `MAGI-RISK-${String(shareTarget.no).padStart(3,"0")}.png`, { type:"image/png" });
+      try{
+        if(navigator.canShare && !navigator.canShare({ files:[file] })) return;
+        await navigator.share({ files:[file], title:"MAGI RISK 預測分享", text: truncate(shareTarget.q, 60) });
+      }catch(e){ /* 使用者取消分享，不算錯誤 */ }
+    }, "image/png");
+  };
+  $("share-flex").onclick = async ()=>{
+    if(!shareTarget) return;
+    try{
+      await navigator.clipboard.writeText(JSON.stringify(buildFlexMessage(shareTarget), null, 2));
+      $("share-toast").textContent = "已複製 Flex JSON";
+    }catch(e){
+      $("share-toast").textContent = "複製失敗：" + e.message;
+    }
+  };
   $("cfg-gate").checked = gateOn();
   $("cfg-gate").onchange = ()=>{
     setGateOn($("cfg-gate").checked);
