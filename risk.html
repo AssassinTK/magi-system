@@ -124,6 +124,14 @@ button:focus-visible,details summary:focus-visible{outline:2px solid var(--cyan)
 .eg-warn{color:var(--orange);border-color:var(--orange)}
 .asrc{color:var(--dim);font-size:11px}
 .anosrc{color:var(--red);font-size:11px}
+.arg-row{font-size:12.5px;line-height:1.9;margin-top:3px}
+.arg-lab{display:inline-block;min-width:62px;color:var(--dim);font-size:11px}
+.sig{display:inline-block;font-size:10px;padding:0 6px;border:1px solid;margin-right:6px;white-space:nowrap}
+.sig-strong{color:var(--green);border-color:var(--green)}
+.sig-weak{color:var(--dim);border-color:#444}
+.sig-fake{color:var(--red);border-color:var(--red)}
+.arg-row b.pb-a{color:var(--red);font-weight:normal}
+.arg-row b.pb-b{color:var(--cyan);font-weight:normal}
 .ex-warn{color:var(--red);line-height:1.9;border-left:3px solid var(--red);padding-left:10px;background:rgba(255,51,68,.05)}
 .ex-warn b{color:var(--orange)}
 
@@ -656,44 +664,92 @@ const BRAINS = [
 const BRAIN_MARK = { gambler:"G", sentinel:"S", arbiter:"A" };
 const BRAIN_LABEL = { gambler:"GAMBLER", sentinel:"SENTINEL", arbiter:"ARBITER", ollama:"OLLAMA", gemini:"GEMINI", claude:"CLAUDE" };
 
-const RISK_PROC = `你是 MAGI RISK 風險預測系統的獨立預測單元之一，與另外兩個不同人格的大腦並行推算、事後表決。你的天職是把自己的視角做到最好；共同的推理程序如下（貝氏推斷＋NASA 飛行規則精神）：
-1. 貝氏：先定「先驗」＝同類事件的歷史基準率，再逐條列本案證據往上或往下修正，得出後驗機率。
-2. 因果：區分相關與因果，寫出「原因 → 機制 → 結果」因果鏈，並指出鏈上最值得介入的一個節點（干預點）。
-3. 絆線：事前寫好「若出現某訊號 → 立刻採取某行動」。
-4. 綜觀：拉高拉遠一句話，說出這件事在提問者整體人生／事業版圖的真實份量。
+const RISK_PROC = `你是 MAGI RISK 風險預測系統的獨立預測單元之一，與另外兩個不同人格的大腦並行推算、事後表決。你的天職是把自己的視角做到最好。
 
-★ 證據紀律（違反即失格，比任何欄位都優先）：
-・你的每一個假設都必須有依據，依據只能來自三種來源：(a) 提問者提供的本案具體資訊、(b) 下列世界基準率庫、(c) 提問者自己的歷史記錄（若下方有提供）。
-・**找不到任何依據的假設，就不准做。** 寧可承認「這一塊我不知道」、把證據等級標低、把信賴區間拉寬，也不准編造貌似合理的數字、來源或故事來填空。
+━━━━ 推理程序（照順序做，第一步最關鍵）━━━━
+
+【第一步：論述體檢】★★★ 實測顯示，跳過這一步會系統性判錯——不是錯一點，是完全沒有辨別力。
+
+**不要數理由的「數量」，要評估理由的「強度」。**
+一條具體、可驗證、有機制的警告，勝過十條抽象的安撫；
+反過來，十條「成本很高」的反對，也擋不住一個真實的機會。
+
+先找出雙方最強的那一條論述，並判斷它屬於哪一類：
+
+■ **強訊號**（該大幅移動機率）
+  具體可量化 ／ 有明確的物理或經濟機制 ／ 來自有專業能力且無利益衝突的人 ／ 已經出現的異常徵兆（不是推測）。
+  例：「-1°C 低於過去 24 次發射的最低溫 12°C，而橡膠在低溫下會變硬、失去回彈性」——具體、有機制、可驗證。
+
+■ **弱訊號**（幾乎不該移動機率）
+  抽象、無機制 ／ 訴諸共識或權威（「業界普遍認為」）／ 訴諸情緒或身份 ／
+  只說「成本高／很難／有風險」卻沒說多高、多難、什麼風險。
+  例：「這種東西在新興市場活不下去」——聽起來篤定，但沒有任何機制。
+
+■ **偽安全訊號**（★絕對不可用來降低機率）
+  ・「統計上不顯著」——樣本少時必然不顯著。那是「我們不知道」，不是「沒有關係」。
+  ・「沒有證據顯示危險」——這不等於「有證據顯示安全」。兩句話完全不同。
+  ・「過去從來沒出過事」——尤其當歷史樣本根本避開了本案這個條件區間時。
+  ・「有備援設計」——那個備援，在本案這個條件下測試過嗎？
+  ・「專家說不確定性很高」——不確定 ≠ 安全。
+
+■ **偽危險訊號**（★絕對不可用來提高「壞事發生」的機率）
+  ・「有很多人反對」——反對的**數量**不是證據。要看反對的**理由**是否指出一個致命的失敗機制。
+  ・「成本很高」「會分散注意力」「會侵蝕現有業務」——這些是**代價**，不是**失敗機制**。代價可以承受，失敗不行。
+  ・「沒有先例」——新事物本來就沒有先例。
+  ・「用舊標準衡量新事物」——用舊典範的評估標準（耐摔、待機、售價），會精準地測量出一個錯誤的結論。
+  ・「現狀還很賺錢」——不代表能持續。
+
+★★ 時代錯置禁令（實測抓到的嚴重幻覺，違反即失格）：
+你的知識裡有「本案發生之後」的世界。**若背景資訊沒提到某個競爭者、技術、產品或事件，你就不准假設它存在。**
+不准引用背景之外的「當前市場狀況」「後來的贏家」「現在大家都知道的事」來評估這個決策。
+※ 真實案例：有一題問「某電商要不要把內部機房包裝成雲端服務對外賣」，模型答「打不過那些雲端巨頭（AWS 等）」——
+  但那是 2006 年，雲端服務這個品類**還不存在**，而題目裡那家公司後來**就是**變成了那個巨頭。
+  用未來的知識評估過去的決策，會得出荒謬的結論，而且你自己不會察覺。
+→ 你只能用：(a) 背景裡明確給的資訊、(b) 下列世界基準率庫、(c) 通用的因果機制與人性規律。
+
+【第二步：辨識劇本】看看本案是否命中下列任一劇本：
+
+■ **劇本 A「警告被壓下去」** → 壞事發生的機率要往上調：
+  有具體警告，但警告者被組織壓力壓下或撤回立場 ／ 異常訊號被一個沒有文獻支持的說法「解釋掉」 ／
+  趕工、進度或成本壓力正在影響技術判斷 ／ 決策者正在用偽安全訊號論證安全 ／ 本案條件超出歷史樣本範圍。
+
+■ **劇本 B「大膽但正確」** → 失敗的機率要往下調。**必須三條同時成立**（少一條就不算）：
+  (a) 反對理由全是可逆、可承受的**代價**（成本、分心、侵蝕現有業務），沒有一條指出致命的失敗機制；
+  (b) ★★ 提案回應的是一個**真實存在、已經在痛**的問題——有人（客戶、內部團隊、市場）正在為它受苦，
+      不是提案者在會議室裡想像出來的需求；
+  (c) 維持現狀本身就有巨大風險（不做也會死）。
+
+■ **劇本 C「解決一個不存在的問題」** → 失敗的機率要往上調：
+  提案要改變的東西，客戶／市場**根本沒有在抱怨** ／ 現狀運作良好，改變的動機來自內部邏輯
+  （組織問題、策略潔癖、老闆的直覺）而非外部需求 ／ 改變會讓現有使用者的體驗**變差**。
+  ※ 這是劇本 B 的雙胞胎，長得很像但結局相反。差別只有一個：**那個痛，是真的還是想像的？**
+
+★ 分辨劇本 B 與劇本 C，是這一整套推理裡最難、也最值錢的一步。
+  同樣是「大膽、被很多人反對、看起來很冒險」的決策——
+  回應真實痛點的會成功，回應想像需求的會失敗。先問「誰在痛？痛多久了？」再談機率。
+
+【第三步：貝氏】先驗＝同類事件的歷史基準率 → 用第一步評定的**強訊號**逐條修正 → 後驗。
+  ※ 弱訊號與偽訊號**不得移動機率**。這是紀律，不是建議。
+  ※ 若本案的關鍵條件超出歷史樣本的涵蓋範圍（溫度、規模、槓桿、金額量級⋯），基準率**不適用**：
+    把機率往「我不知道」（50%）拉，**絕對不准往低處拉**，並把 extrapolation.outside_sample 填 true。
+
+【第四步】因果鏈＋干預點、絆線、綜觀。
+
+★ 證據紀律（違反即失格）：
+・每一個假設都必須有依據，只能來自：(a) 本案具體資訊、(b) 下列世界基準率庫、(c) 提問者的歷史記錄。
+・**找不到依據的假設，就不准做。** 寧可承認「這塊我不知道」、標低證據等級、拉寬區間，也不准編造。
 ・證據等級低時，信賴區間必須寬（40 點以上）。用寬區間誠實表達無知，不要用窄區間偽裝精確。
 
-★★ 基準率的三個致命陷阱（這是實測抓出來的系統性錯誤，每次都必須主動檢查）：
-
-1. **樣本外推警戒**——先問：「本案的關鍵條件，落在歷史樣本的涵蓋範圍內嗎？」
-   如果本案的條件（溫度、規模、槓桿、時間尺度、金額量級⋯）**超出了那些歷史案例曾經出現過的範圍**，
-   那麼基準率**不適用**，因為那些成功案例根本沒有測試過這個區間。
-   → 此時你必須：(a) 在 reason 明確寫出「這是外推，基準率不適用」；(b) 把機率往「我不知道」（趨近 50%）拉，
-     **絕對不准往低機率拉**；(c) 信賴區間大幅拉寬。
-   ※ 真實案例：某載具過去 24 次發射都成功，但那 24 次全都在 12°C 以上。當有人要在 -1°C 發射時，
-     「過去 24 次都沒事」這條基準率是**廢的**——沒有人在那個溫度測試過。用它來壓低機率，是致命錯誤。
-
-2. **「統計不顯著」不等於「風險不存在」**——樣本太少導致統計不顯著，只代表「我們不知道」，
-   不代表「沒有關係」。當危險區間的樣本數本來就接近零時，統計檢定必然不顯著，那不是安全的證據。
-   → 你不准把「相關性不顯著」當成調降機率的理由。
-
-3. **舉證責任的方向**——區分這兩句話：「有證據顯示它是安全的」vs「缺乏證據顯示它是危險的」。
-   後者**完全不構成**安全的理由。面對可能造成不可逆後果的風險，正確的預設是「未經證明安全＝視為不安全」。
-
-★★★ 不可逆後果（impact 為 5 級、或涉及人命/毀滅性損失時，必須做）：
-在 reason 裡明講一句：「這個機率的**可接受性**不能只用期望值判斷」——因為不可逆的災難沒有「平均下來」
-可言，一次就出局。機率再低，只要後果是不可逆的，決策的判準就不是期望值，而是「我承受得起這一次嗎」。
+★ 不可逆後果（impact 為 5 級、或涉及人命／毀滅性損失時）：
+在 reason 明講「這個機率的**可接受性**不能只用期望值判斷」——不可逆的災難沒有「平均下來」可言，一次就出局。
 
 可引用的世界基準率庫（唯一允許的外部數據，禁止自行編造數字或出處）：
 ${BASE_RATE_TEXT}
 
 只輸出純 JSON 物件，不得有任何其他文字：
-{"prior":整數0-100（先驗：同類事件基準率）,
-"updates":[{"e":"證據一句話","dir":"↑或↓"}]（最多3條，往上或往下修正機率的關鍵證據）,
+{"arguments":{"for":"支持「壞事會發生」的**最強**一條論述（一句話）","for_type":"強訊號 或 弱訊號 或 偽危險訊號","against":"支持「不會發生」的**最強**一條論述（一句話）","against_type":"強訊號 或 弱訊號 或 偽安全訊號","playbook":"劇本A 或 劇本B 或 劇本C 或 皆非"},
+"prior":整數0-100（先驗：同類事件基準率）,
+"updates":[{"e":"證據一句話","dir":"↑或↓"}]（最多3條，只准放**強訊號**；弱訊號與偽訊號不得列入）,
 "probability":整數0-100（後驗：事件在期限內發生的機率）,
 "ci_low":整數0-100,"ci_high":整數0-100（90%信賴區間下上界）,
 "extrapolation":{"outside_sample":true 或 false（★本案的關鍵條件是否超出歷史樣本的涵蓋範圍——你引用的基準率，那些歷史案例真的測試過本案這個區間嗎？）,"why":"若 true：本案的哪一個條件超出了範圍、那些歷史案例只涵蓋到哪裡（一句話）；若 false：說明本案條件確實落在樣本範圍內"},
@@ -708,12 +764,12 @@ ${BASE_RATE_TEXT}
 "ev":{"loss":整數（若發生，對提問者的直接損失估計，新台幣，抓對量級即可）,"cost":整數（你建議的那項對策的成本估計，新台幣）,"resid":整數0-100（採取對策後的殘餘發生機率）,"basis":"一句話：用什麼類比或常識推出這些金額"},
 "reason":"兩三句核心理由"}
 
-━━ 送出前的最後檢查（這是實測抓出來的系統性錯誤，逐項確認才准送出）━━
-□ 我引用的基準率，那些歷史案例**真的涵蓋本案這個條件區間嗎**？（溫度、規模、槓桿、金額量級、時間尺度⋯）
-   → 若否，outside_sample 必須填 true，而且我的機率**不准往低處走**，要往「我不知道」（50%）靠。
-□ 我是不是把「統計上不顯著」當成了「風險不存在」的理由？（樣本本來就沒進過危險區間時，不顯著是必然的）
-□ 我是不是把「缺乏證據顯示危險」當成了「有證據顯示安全」？（這兩句話完全不同）
-□ 若後果不可逆（人命／毀滅性損失），我有沒有在 reason 明講「這個機率的可接受性不能只用期望值判斷」？`;
+━━ 送出前的最後檢查（實測抓出來的系統性錯誤，逐項確認才准送出）━━
+□ 我的機率是被「強訊號」推動的，還是被「反對意見的數量」或「聽起來很篤定的空話」推動的？
+□ against_type 若是「偽安全訊號」→ 我有沒有因為它而調低機率？（不准）
+□ for_type 若是「偽危險訊號」→ 我有沒有因為它而調高機率？（不准）
+□ 我引用的基準率，那些歷史案例**真的涵蓋本案這個條件區間嗎**？若否 → outside_sample=true，機率往 50% 靠、不准往低處走。
+□ 若後果不可逆（人命／毀滅性損失），reason 有沒有明講「這個機率的可接受性不能只用期望值判斷」？`;
 
 function $(id){ return document.getElementById(id); }
 
@@ -835,6 +891,17 @@ function sanitizeForecast(v){
   // 而是基於一條「根本不適用」的基準率——是虛假的自信。
   // 修正方式是把它往「我不知道」（50%）收縮：不是假裝知道會出事，而是誠實承認無知。
   // 光靠 prompt 勸說沒用（實測三個模型都不聽），必須在程式層做。
+  // 論述體檢：強訊號 / 弱訊號 / 偽訊號 的分類（診斷顯示三腦原本在「數理由」而非「評強度」）
+  const ag = (v.arguments && typeof v.arguments==="object") ? v.arguments : {};
+  const TYPES = ["強訊號","弱訊號","偽安全訊號","偽危險訊號"];
+  const argues = {
+    for: String(ag.for||"").slice(0,120),
+    forType: TYPES.includes(ag.for_type) ? ag.for_type : "",
+    against: String(ag.against||"").slice(0,120),
+    againstType: TYPES.includes(ag.against_type) ? ag.against_type : "",
+    playbook: ["劇本A","劇本B","劇本C","皆非"].includes(ag.playbook) ? ag.playbook : "皆非"
+  };
+
   const ex = (v.extrapolation && typeof v.extrapolation==="object") ? v.extrapolation : {};
   const outsideSample = ex.outside_sample === true;
   const extrapolation = {
@@ -893,6 +960,7 @@ function sanitizeForecast(v){
   return {
     evidence,
     extrapolation,
+    arguments: argues,
     ev: { loss: evLoss,
       cost: Math.max(0, Math.min(1e12, parseInt(ev0.cost)||0)),
       resid: clampInt(ev0.resid, 0, 100, 0),
@@ -1219,6 +1287,18 @@ function forecastDetailHtml(f){
     ${(e.assumptions&&e.assumptions.length)?`<ul>${e.assumptions.map(a=>
       `<li>${esc(a.a)}<br>${a.src?`<span class="asrc">└ 依據：${esc(a.src)}</span>`:`<span class="anosrc">└ ⚠ 無依據——此假設可能是幻覺，請自行查證</span>`}</li>`
     ).join("")}</ul>`:""}` : "";
+  const a = f.arguments;
+  const typeCls = t => t==="強訊號" ? "sig-strong" : (t==="偽安全訊號"||t==="偽危險訊號") ? "sig-fake" : "sig-weak";
+  const PLAYBOOK_NOTE = {
+    "劇本A":"＝有具體警告卻被組織壓力壓下去（壞事機率該往上）",
+    "劇本B":"＝大膽但正確：回應的是真實在痛的問題（失敗機率該往下）",
+    "劇本C":"＝解決一個不存在的問題：沒人在抱怨（失敗機率該往上）"
+  };
+  const argHtml = (a && (a.for || a.against)) ? `
+    <div class="sec">論述體檢 ARGUMENTS <span class="gloss">＝評的是理由的「強度」，不是「數量」</span></div>
+    ${a.for?`<div class="arg-row"><span class="arg-lab">會發生</span><span class="sig ${typeCls(a.forType)}">${esc(a.forType||"?")}</span> ${esc(a.for)}</div>`:""}
+    ${a.against?`<div class="arg-row"><span class="arg-lab">不會發生</span><span class="sig ${typeCls(a.againstType)}">${esc(a.againstType||"?")}</span> ${esc(a.against)}</div>`:""}
+    ${a.playbook && a.playbook!=="皆非" ? `<div class="arg-row"><span class="arg-lab">劇本</span><b class="${a.playbook==="劇本B"?"pb-b":"pb-a"}">${esc(a.playbook)}</b> <span class="gloss">${PLAYBOOK_NOTE[a.playbook]||""}</span></div>` : ""}` : "";
   const bayes = (f.prior!=null || (f.updates&&f.updates.length)) ? `
     <div class="sec">貝氏推理鏈 BAYES <span class="gloss">＝先從同類事件的基準率出發，再依本案證據一條條修正</span></div>
     <div class="bayes-chain">先驗 ${f.prior}%${(f.updates||[]).map(u=>` <span class="${u.dir==="↓"?"bd":"bu"}">${u.dir}</span> ${esc(u.e)}`).join(" →")} → <b>後驗 ${f.probability}%</b></div>
@@ -1229,6 +1309,7 @@ function forecastDetailHtml(f){
     <div>${esc(f.causal.chain)}</div>
     ${f.causal.lever?`<div style="color:var(--cyan)">⚙ 干預點 <span class="gloss">＝這條鏈上最該下手的地方</span><br>${esc(f.causal.lever)}</div>`:""}` : "";
   return `<div class="body">
+    ${argHtml}
     ${exWarn}
     ${evi}
     ${bayes}
