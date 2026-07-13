@@ -145,6 +145,29 @@ details .body{padding:0 12px 12px;font-size:13px;line-height:1.8;color:var(--tex
 .review-btns button:hover{border-color:var(--orange)}
 .review-btns .rb-true{border-color:var(--green);color:var(--green)}
 .review-btns .rb-false{border-color:var(--red);color:var(--red)}
+.gate-card{border:2px solid var(--yellow);background:var(--panel);padding:14px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.gate-card .gtitle{font-size:12px;color:var(--yellow);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gate-card .groundtag{color:var(--dim);font-size:10px;letter-spacing:1px}
+.gate-card .ghint{font-size:11.5px;color:var(--text);line-height:1.8;margin-bottom:10px}
+.gate-card .gsec{font-size:10px;color:var(--dim);letter-spacing:2px;margin-top:10px;margin-bottom:4px}
+.gate-card ul{padding-left:18px;font-size:12px;line-height:1.8;color:var(--dim)}
+.gq{margin-top:10px}
+.gq label{display:block;font-size:12.5px;color:var(--orange);line-height:1.7;margin-bottom:5px}
+.gq textarea{min-height:44px}
+.gblind{font-size:11.5px;color:var(--red);line-height:1.8;border-left:3px solid var(--red);padding-left:8px}
+.gate-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.gate-actions button{flex:1;min-width:130px;background:none;border:1px solid #444;color:var(--dim);font-family:var(--mono);font-size:11.5px;letter-spacing:1px;padding:11px 8px;cursor:pointer;min-height:44px;transition:transform .08s ease,border-color .2s,color .2s}
+.gate-actions button:active{transform:scale(.97)}
+.gate-actions button.primary{background:var(--yellow);border-color:var(--yellow);color:#000;font-weight:bold}
+.gate-actions #gate-anchor:hover{border-color:var(--orange);color:var(--orange)}
+.fw-hint{padding:8px 12px;font-size:10px;color:var(--dim);line-height:1.7}
+.fw-row{border-bottom:1px solid #222;padding:9px 12px;font-size:12px;line-height:1.8}
+.fw-row .fwk{color:var(--orange);font-size:11px;letter-spacing:1px}
+.fw-row .fwv{color:var(--text)}
+.fw-row .fwoff{color:var(--red)}
+.fw-row .fwok{color:var(--green)}
+.fw-row .fwdim{color:var(--dim);font-size:11px}
+.conf-capped{color:var(--orange);font-size:10px}
 footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:20px 0 8px}
 
 #lockscreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,123,0,.012) 3px,rgba(255,123,0,.012) 4px)}
@@ -273,6 +296,19 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
 
 <div class="console" id="console"></div>
 
+<div class="gate-card" id="gate-card" style="display:none">
+  <div class="gtitle">證據體檢 / EVIDENCE GATE　<span id="gate-suff"></span>　<span class="groundtag" id="gate-round"></span></div>
+  <div class="ghint" id="gate-hint"></div>
+  <div id="gate-missing"></div>
+  <div id="gate-questions"></div>
+  <div id="gate-blind"></div>
+  <div class="gate-actions">
+    <button class="primary" id="gate-submit">補充完畢 · 重新體檢</button>
+    <button id="gate-anchor">證據就這樣 · 直接審議</button>
+    <button id="gate-cancel">取消</button>
+  </div>
+</div>
+
 <div class="inbox">
   <label>議案輸入 / PROPOSAL</label>
   <div class="tmpl-row">
@@ -303,6 +339,12 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
       </div>
     </div>
   </div>
+  <div style="padding:0 12px 10px">
+    <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);cursor:pointer">
+      <input type="checkbox" id="cfg-gate" style="width:auto;flex:none">
+      <span>證據閘門（預設開）：三賢人審議前先驗議案夠不夠具體，太模糊就反問你（單輪最多 4 題）。關掉的話再模糊也會直接審議。</span>
+    </label>
+  </div>
   <div class="settings-grid">
     <div><label id="cfg-url-label">OLLAMA ENDPOINT</label><input type="text" id="cfg-url" value="http://localhost:11434"></div>
     <div><label id="cfg-model-label">MODEL</label><input type="text" id="cfg-model" value="qwen2.5:14b"></div>
@@ -310,8 +352,15 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div style="padding:0 12px 12px;font-size:10px;color:var(--dim);line-height:1.6" id="eng-hint"></div>
 </details>
 
+<details id="flywheel-box">
+  <summary>數據飛輪 / FLYWHEEL <span class="tag 保留" id="fw-tag"></span></summary>
+  <div class="fw-hint">每次審議前，系統會把各賢人自己的歷史戰績注入他的 prompt——他看得到自己站對邊幾成、信賴度是不是虛高、在相似議案上判錯過什麼。只餵他自己的紀錄，不餵其他賢人的立場，所以獨立性不受影響。對答案越多，審議越準。</div>
+  <div id="flywheel"></div>
+</details>
+
 <details id="review-box">
   <summary>案件回顧 / REVIEW <span id="review-title"></span></summary>
+  <div class="fw-hint">判決書裡的「六個月可證偽預測」應驗了嗎？在這裡對答案，飛輪才會轉。</div>
   <div id="review-list"></div>
 </details>
 
@@ -546,12 +595,115 @@ function parseJsonLoose(raw){
   }
 }
 
-async function askUnit(unit, question, context){
+// ━━ 證據守門員：三賢人審議前先驗議案夠不夠具體。不夠就反問（單輪最多 4 題），不硬審 ━━
+const GATE_THRESHOLD = 55;   // 與 RISK 同一套真機校準值
+const GATE_MAX_Q = 4;        // 單輪最多 4 題
+const LOW_EVIDENCE_CONF_CAP = 60;   // 證據不足時，信賴度程式層硬上限（不管賢人自稱多少）
+
+const MAGI_EVIDENCE_SYS = `你是 MAGI 的證據守門員。三賢人即將審議一項決策議案。你唯一的任務是判斷「現有資訊是否足以做出負責任的裁定」——你自己絕對不要表態贊成或反對。
+
+一項決策議案要能被負責任地裁定，通常需要交代：目的與期望結果、關鍵約束（預算／時限／人力）、有哪些替代方案、不做會怎樣、以及可逆性（做錯了能不能回頭）。
+
+充分度判準：
+・80-100：上述面向大多有交代，三賢人可以實質審議。
+・50-79：主幹清楚，但關鍵約束或替代方案缺失，審議容易流於空談。
+・0-49：只有一句話議題，缺乏決策所需的具體資訊——此時三賢人只能靠常識與想像填空，產出的判決書會是漂亮的廢話。
+
+提問鐵律：
+1. 每個問題都必須「能明顯改變裁定方向或信賴度」——問了會讓賢人改變立場才值得問。不准問客套話、不准問背景裡已有的東西。
+2. 最多 4 個問題，越少越好。能用一個問題問到最關鍵的缺口，就只問一個。
+3. 問題要具體可答（「預算上限多少？」勝過「預算如何？」）。
+
+只輸出純 JSON 物件，不得有任何其他文字：
+{"sufficiency":整數0-100,
+"missing":["缺少的關鍵資訊，最多4條，每條一句話"],
+"questions":["針對性問題，最多4個"],
+"blind":"若提問者不補充，三賢人最可能在哪一塊憑空想像（一句話）"}`;
+
+function gateOn(){ return localStorage.getItem("magi_gate_off") !== "1"; }
+function setGateOn(on){ localStorage.setItem("magi_gate_off", on ? "0" : "1"); }
+
+async function evidenceCheck(question, context){
+  const messages = [
+    { role:"system", content: MAGI_EVIDENCE_SYS },
+    { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:"\n\n背景補充：（提問者沒有提供任何背景）"}` }
+  ];
+  const raw = await callChat(messages, { temperature:0.2, num_predict:600 }, CHAT_TIMEOUT_MS, true);
+  const v = parseJsonLoose(raw);
+  const clamp = (x,lo,hi,d)=>{ const n=parseInt(x); return isNaN(n)?d:Math.max(lo,Math.min(hi,n)); };
+  return {
+    sufficiency: clamp(v.sufficiency, 0, 100, 50),
+    missing: (Array.isArray(v.missing)?v.missing:[]).slice(0,GATE_MAX_Q).map(x=>String(x).slice(0,90)).filter(Boolean),
+    questions: (Array.isArray(v.questions)?v.questions:[]).slice(0,GATE_MAX_Q).map(x=>String(x).slice(0,120)).filter(Boolean),
+    blind: String(v.blind||"").slice(0,150)
+  };
+}
+
+let gateBypass = null;   // 「證據就這樣」的放行憑證
+let gateState = null;    // 當前攤在畫面上的體檢結果
+let gateRound = 0;       // 第幾輪補充（每輪最多 4 題）
+
+function showGateCard(gate){
+  gateState = gate;
+  gateRound++;
+  const badge = $("gate-suff");
+  badge.textContent = `充分度 ${gate.sufficiency}%`;
+  badge.className = "tag " + (gate.sufficiency < 40 ? "否決" : "保留");
+  $("gate-round").textContent = gateRound > 1 ? `第 ${gateRound} 輪補充` : "";
+  $("gate-hint").textContent = "議案太模糊，三賢人只能靠常識與想像填空——那樣的判決書是漂亮的廢話。回答下面的問題能明顯改變裁定；不想補也可以直接審議，但賢人的信賴度會被強制壓上限，並要求他們老實標出哪些只是假設。";
+  $("gate-missing").innerHTML = gate.missing.length
+    ? `<div class="gsec">缺什麼關鍵資訊</div><ul>${gate.missing.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>` : "";
+  $("gate-questions").innerHTML = gate.questions.map((qq,i)=>
+    `<div class="gq"><label>${i+1}. ${esc(qq)}</label><textarea class="gq-a" data-q="${esc(qq)}" rows="2" placeholder="知道多少寫多少；真的不知道就留空"></textarea></div>`
+  ).join("");
+  $("gate-blind").innerHTML = gate.blind
+    ? `<div class="gsec">若不補充，賢人最可能在這裡憑空想像</div><div class="gblind">${esc(gate.blind)}</div>` : "";
+  $("gate-card").style.display = "block";
+  $("gate-card").scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+function hideGateCard(){
+  $("gate-card").style.display = "none";
+  gateState = null;
+}
+
+function gateSubmit(){
+  const pairs = [...document.querySelectorAll(".gq-a")]
+    .map(t=>({ q: t.dataset.q, a: t.value.trim() }))
+    .filter(x=>x.a);
+  if(!pairs.length){
+    clog("沒有補充任何答案 — 若確定沒有更多資訊，請按「證據就這樣」", "ln-err");
+    return;
+  }
+  const add = pairs.map(x=>`Q：${x.q}\nA：${x.a}`).join("\n");
+  const cur = $("ctx").value.trim();
+  $("ctx").value = (cur ? cur + "\n" : "") + `【第 ${gateRound} 輪補充】\n${add}`;
+  hideGateCard();
+  clog(`已補充 ${pairs.length} 項資訊 — 重新體檢`, "ln-ok");
+  run();
+}
+
+function gateAnchor(){
+  const g = gateState;
+  gateBypass = g ? { sufficiency: g.sufficiency, blind: g.blind } : { sufficiency: 0, blind: "" };
+  hideGateCard();
+  clog("已確認證據就這樣 — 三賢人信賴度將被壓上限，並須標明哪些只是假設", "ln-sys");
+  run();
+}
+
+function gateCancel(){
+  hideGateCard();
+  gateRound = 0;
+  clog("已取消本次提訴", "ln-sys");
+}
+
+async function askUnit(unit, question, context, unitIdx, gateNote){
   setUnit(unit.id, "thinking", "審議中...");
   clog(`${unit.name} PATTERN 解析開始`);
   const messages = [
-    { role:"system", content: unit.sys + PROMPT_TAIL },
-    { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}` }
+    // 飛輪接在人格 prompt 尾端（vault 裡的 sys/PROMPT_TAIL 完全不動）
+    { role:"system", content: unit.sys + PROMPT_TAIL + magiFlywheelBlock(unitIdx, question) },
+    { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}${gateNote||""}` }
   ];
   const options = { temperature: unit.temp, num_predict: 700 };
   const raw = await callChat(messages, options, CHAT_TIMEOUT_MS, true);
@@ -570,8 +722,14 @@ async function askUnit(unit, question, context){
   }
   if(!["可決","否決","保留"].includes(v.vote)) v.vote = "保留";
   v.confidence = Math.max(0, Math.min(100, parseInt(v.confidence)||50));
-  setUnit(unit.id, "v-"+v.vote, v.vote, `信賴度 ${v.confidence}%`);
-  clog(`${unit.name} 裁定：${v.vote}（${v.confidence}%）`, v.vote==="否決"?"ln-err":"ln-ok");
+  // 程式層強制（不信 prompt）：證據不足還報高信心＝不負責任，直接壓到上限並留痕
+  if(gateNote && v.confidence > LOW_EVIDENCE_CONF_CAP){
+    v._confRaw = v.confidence;
+    v.confidence = LOW_EVIDENCE_CONF_CAP;
+    v._confCapped = true;
+  }
+  setUnit(unit.id, "v-"+v.vote, v.vote, `信賴度 ${v.confidence}%${v._confCapped?"（已壓上限）":""}`);
+  clog(`${unit.name} 裁定：${v.vote}（${v.confidence}%${v._confCapped?`，自稱 ${v._confRaw}% 被壓到證據上限`:""}）`, v.vote==="否決"?"ln-err":"ln-ok");
   return v;
 }
 
@@ -584,13 +742,13 @@ function normalizeRevote(v){
   return v;
 }
 
-async function askUnitRevote(unit, question, context, myPrev, opponents){
+async function askUnitRevote(unit, question, context, myPrev, opponents, unitIdx){
   setUnit(unit.id, "thinking", "再表決中...");
   clog(`${unit.name} 針對性再表決開始 — 強制二選一`);
   const oppText = opponents.map(o=>`【${o.name}】理由：${o.reason||"（無）"}${o.question?`\n質問：${o.question}`:""}`).join("\n\n");
   const revoteInstr = `這是針對性再表決（原案三方不一致，已進入再審議，本輪強制二選一，不得投「保留」或任何其他值）。\n\n你上一輪投票：${myPrev.vote}（信賴度${myPrev.confidence}%）\n你上一輪理由：${myPrev.reason||"（無）"}\n\n其他兩位賢人的核心理由與質問：\n${oppText}\n\n規則：若維持原票，你必須具體擊破對方最強的論點；若改票，你必須說明是哪一個新事實或論點說服了你改變立場。vote 欄位只能是「可決」或「否決」兩者之一，絕對不可以輸出「保留」或其他任何值。`;
   const messages = [
-    { role:"system", content: unit.sys + PROMPT_TAIL },
+    { role:"system", content: unit.sys + PROMPT_TAIL + magiFlywheelBlock(unitIdx, question) },
     { role:"user", content: `議案：${question}${context?`\n\n背景補充：${context}`:""}` },
     { role:"assistant", content: JSON.stringify({vote:myPrev.vote, confidence:myPrev.confidence, reason:myPrev.reason}) },
     { role:"user", content: revoteInstr }
@@ -662,6 +820,87 @@ function precedentText(q){
     `【判例 #${String(c.no).padStart(3,"0")}】議案：${c.q}\n裁定：${c.verdict}${(c.jd&&c.jd.ruling)?`\n判詞：${c.jd.ruling}`:""}`
   ).join("\n\n");
   return `\n\n以下為過往類似判例（僅供judgment撰寫參考，不代表本案必須從同判）：\n${lines}`;
+}
+
+// ━━ 數據飛輪：已對答案的判決 → 回饋進三賢人下一次的表決 ━━
+// 原設計刻意讓三賢人看不到歷史（防從眾），但那個顧慮針對的是「看別人怎麼判」。
+// 「看自己過去判得準不準」不是從眾，是自我校準——這裡只餵該賢人自己的戰績，不餵他人立場。
+const MAGI_FW_MIN = 3;
+
+function magiResolved(){
+  return loadFullCases().filter(c=>
+    (c.outcome==="成真" || c.outcome==="未成真") &&
+    (c.verdict==="可決" || c.verdict==="否決")   // 再審議/無裁定的案子沒有可比對的立場
+  );
+}
+
+// 事後看這位賢人有沒有站對邊：
+// 判決書的可證偽預測「成真」＝該裁定是對的 → 跟裁定同邊的人站對；
+// 「未成真」＝該裁定的推理有問題 → 當初唱反調的人反而站對。保留票不表態，不計分。
+function unitHit(vote, verdict, outcome){
+  if(vote !== "可決" && vote !== "否決") return null;
+  return (vote === verdict) === (outcome === "成真");
+}
+
+function magiCalibrationOf(unitIdx){
+  const rows = [];
+  magiResolved().forEach(c=>{
+    const v = (c.votes||[])[unitIdx];
+    if(!v) return;
+    const hit = unitHit(v.vote, c.verdict, c.outcome);
+    if(hit === null) return;
+    rows.push({ hit, conf: Math.max(0,Math.min(100,parseInt(v.confidence)||50)), vote: v.vote });
+  });
+  if(rows.length < MAGI_FW_MIN) return { n: rows.length, enough: false };
+  const hitRate = Math.round(rows.filter(r=>r.hit).length / rows.length * 100);
+  const avgConf = Math.round(rows.reduce((s,r)=>s+r.conf, 0) / rows.length);
+  const yesRate = Math.round(rows.filter(r=>r.vote==="可決").length / rows.length * 100);
+  return { n: rows.length, enough: true, hitRate, avgConf, overconf: avgConf - hitRate, yesRate };
+}
+
+function magiPrecedentsFor(unitIdx, q, k=2){
+  return magiResolved()
+    .map(c=>({ c, s: similarity(q, c.q) }))
+    .filter(x=>x.s > 0.15)
+    .sort((a,b)=>b.s-a.s)
+    .slice(0,k)
+    .map(x=>x.c);
+}
+
+// 注入該賢人 system prompt 尾端（不動 vault 裡的人格 prompt）
+function magiFlywheelBlock(unitIdx, q){
+  const cal = magiCalibrationOf(unitIdx);
+  const sims = magiPrecedentsFor(unitIdx, q, 2);
+  const lines = [];
+
+  if(cal.enough){
+    const oc = cal.overconf > 8
+      ? `你的信賴度系統性虛高 ${cal.overconf} 點——平均自稱 ${cal.avgConf}% 信心，實際只站對邊 ${cal.hitRate}%。這次報信賴度前，先正視這個落差。`
+      : cal.overconf < -8
+      ? `你的信賴度系統性偏低 ${Math.abs(cal.overconf)} 點——平均自稱 ${cal.avgConf}%，實際站對邊 ${cal.hitRate}%。你比自己以為的準，不必過度保留。`
+      : `你的信賴度與實際命中大致相符（自稱 ${cal.avgConf}%、實際 ${cal.hitRate}%）。`;
+    const lean = cal.yesRate >= 70
+      ? `　立場傾向：已驗證案件中你有 ${cal.yesRate}% 投可決——明顯偏向放行，這次請自問是不是又在慣性放行。`
+      : cal.yesRate <= 30
+      ? `　立場傾向：已驗證案件中你只有 ${cal.yesRate}% 投可決——明顯偏向擋案，這次請自問是不是又在慣性否決。`
+      : "";
+    lines.push(`【你的歷史戰績】已驗證 ${cal.n} 案（不含保留票），事後看你站對邊 ${cal.hitRate}%。${oc}${lean}`);
+  }else{
+    lines.push(`【你的歷史戰績】只有 ${cal.n} 案已驗證（需 ${MAGI_FW_MIN} 案才具參考性）——尚無可用的校準資料，不要假裝有。`);
+  }
+
+  if(sims.length){
+    const t = sims.map(c=>{
+      const v = (c.votes||[])[unitIdx];
+      const hit = v ? unitHit(v.vote, c.verdict, c.outcome) : null;
+      const mine = v ? `你當時投「${v.vote}」（信賴度 ${v.confidence}%）` : "你當時未表態";
+      const judge = hit === null ? "" : hit ? " → 事後證明你站對了" : " → 事後證明你站錯了";
+      return `・「${c.q}」最終裁定「${c.verdict}」，結果：${c.outcome}\n　${mine}${judge}`;
+    }).join("\n");
+    lines.push(`【你在相似議案上的紀錄】\n${t}\n→ 若你曾在相似案子上判錯，這次要說明你憑什麼不會重蹈覆轍。`);
+  }
+
+  return `\n\n━━ 數據飛輪（你自己的歷史戰績，非他人立場）━━\n${lines.join("\n\n")}\n\n※ 以上只是你個人的校準資料，不含其他賢人的意見——你的判斷仍須完全獨立，但請把已知的自身偏差納入校正。`;
 }
 
 function saveFullCase(no,q,ctx,verdict,votes,jd){
@@ -806,6 +1045,7 @@ function saveHistory(no, q, ctx, verdict, votes, jd){
 }
 
 // brain-6：案件結果回顧（簡化版，只做結果標記，不做 Brier 校準）
+function gradeCaseThenRefresh(no, outcome){ gradeCase(no, outcome); renderFlywheel(); }
 function gradeCase(no, outcome){
   let cases = loadFullCases();
   const idx = cases.findIndex(x=>x.no === no);
@@ -814,6 +1054,29 @@ function gradeCase(no, outcome){
   localStorage.setItem("magi_cases_full", JSON.stringify(cases.slice(0,30)));
   renderReview();
   sbGradeCase(no, outcome);
+}
+
+// 飛輪儀表：讓阿桑看得到賢人的戰績與偏差
+function renderFlywheel(){
+  const box = $("flywheel");
+  const resolved = magiResolved();
+  const total = loadFullCases().length;
+  $("fw-tag").textContent = `${resolved.length}/${total} 已對答案`;
+  if(!resolved.length){
+    box.innerHTML = `<div class="fw-hint">飛輪尚未啟動。到「案件回顧」把判決書的六個月預測標記成真／未成真後，三賢人下次上場就會帶著自己的戰績。</div>`;
+    return;
+  }
+  box.innerHTML = UNITS.map((u,i)=>{
+    const c = magiCalibrationOf(i);
+    if(!c.enough) return `<div class="fw-row"><span class="fwk">${esc(u.name)}</span>　<span class="fwdim">已驗證 ${c.n} 案（需 ${MAGI_FW_MIN} 案才注入校準）</span></div>`;
+    const oc = c.overconf > 8 ? `<span class="fwoff">信賴度虛高 +${c.overconf} 點</span>`
+      : c.overconf < -8 ? `<span class="fwoff">信賴度偏低 ${c.overconf} 點</span>`
+      : `<span class="fwok">信賴度誠實</span>`;
+    const lean = c.yesRate >= 70 ? `<span class="fwoff">慣性放行（${c.yesRate}% 投可決）</span>`
+      : c.yesRate <= 30 ? `<span class="fwoff">慣性擋案（僅 ${c.yesRate}% 投可決）</span>`
+      : `<span class="fwdim">立場平衡（${c.yesRate}% 投可決）</span>`;
+    return `<div class="fw-row"><span class="fwk">${esc(u.name)}</span>　<span class="fwv">站對邊 ${c.hitRate}%</span>　${oc}　${lean}　<span class="fwdim">${c.n} 案（平均自稱 ${c.avgConf}% 信心）</span></div>`;
+  }).join("");
 }
 
 function renderReview(){
@@ -825,8 +1088,8 @@ function renderReview(){
       <div class="rq">#${String(c.no).padStart(3,"0")} ${esc(c.q)}</div>
       <div class="rforecast">${esc(c.jd.forecast)}</div>
       <div class="review-btns">
-        <button class="rb-true" onclick="gradeCase(${c.no},'成真')">成真</button>
-        <button class="rb-false" onclick="gradeCase(${c.no},'未成真')">未成真</button>
+        <button class="rb-true" onclick="gradeCaseThenRefresh(${c.no},'成真')">成真</button>
+        <button class="rb-false" onclick="gradeCaseThenRefresh(${c.no},'未成真')">未成真</button>
       </div>
     </div>`).join("") || `<div class="review-item">尚無待驗證案件</div>`;
 }
@@ -1390,8 +1653,36 @@ async function run(){
     clog(`MAGI 連線失敗 — ${disconnectHint(eng)}`, "ln-err");
     return;
   }
-
+  const bypass = gateBypass;   // 取出本次的放行憑證
+  gateBypass = null;           // 立刻清空，避免黏到下一案
   $("go").disabled = true;
+
+  // ━━ 證據閘門：議案太模糊就先反問，不硬審（硬審只會產出漂亮的廢話）━━
+  if(gateOn() && !bypass){
+    prailStart_();
+    prailSet("證據體檢中...");
+    try{
+      const gate = await evidenceCheck(q, $("ctx").value.trim());
+      prailStop();
+      const pass = gate.sufficiency >= GATE_THRESHOLD || !gate.questions.length;
+      clog(`證據體檢：充分度 ${gate.sufficiency}%${pass?" — 放行":" — 攔下，議案需要更具體"}`, pass?"ln-ok":"ln-err");
+      if(!pass){
+        showGateCard(gate);
+        $("go").disabled = false;
+        return;
+      }
+    }catch(e){
+      prailStop();
+      clog(`證據體檢失敗（${e.message}）— 略過閘門直接審議`, "ln-err");
+    }
+  }
+
+  // 使用者確認「證據就這樣」→ 三賢人必須承認無知、信賴度被程式壓上限
+  let gateNote = "";
+  if(bypass){
+    gateNote = `\n\n━━ 證據狀態（系統強制告知，優先於一切）━━\n本案已經過證據體檢：充分度僅 ${bypass.sufficiency}%，提問者確認不再補充資訊。\n${bypass.blind ? `最可能的憑空想像點：${bypass.blind}` : ""}\n你必須：(1) 信賴度不得超過 ${LOW_EVIDENCE_CONF_CAP}——證據不足還報高信心就是不負責任（系統會強制壓到上限）；(2) 在 reason 裡明確區分「事實」與「你的假設」，每個假設要說明依據；(3) 找不到依據的假設就不要做，寧可直說「這一塊我不知道，需要更多資訊」。絕對禁止用漂亮的常識填空冒充分析。`;
+  }
+
   $("verdict").className = "verdict";
   $("jdoc").className = "jdoc";
   $("jdoc").innerHTML = "";
@@ -1410,7 +1701,7 @@ async function run(){
     if(engine === "gemini"){
       UNITS.forEach(u=>setUnit(u.id,"thinking","審議中..."));
       prailSet("三賢人併發審議中...");
-      const settled = await Promise.allSettled(UNITS.map(u=>askUnit(u, q, ctxVal0)));
+      const settled = await Promise.allSettled(UNITS.map((u,i)=>askUnit(u, q, ctxVal0, i, gateNote)));
       settled.forEach((s,i)=>{
         const unit = UNITS[i];
         let v;
@@ -1426,9 +1717,10 @@ async function run(){
         renderResult(unit, v);
       });
     }else{
-      for(const unit of UNITS){
+      for(let i=0;i<UNITS.length;i++){
+        const unit = UNITS[i];
         prailSet(`${unit.name} 審議中...`);
-        const v = await askUnit(unit, q, ctxVal0);
+        const v = await askUnit(unit, q, ctxVal0, i, gateNote);
         votes.push(v);
         renderResult(unit, v);
       }
@@ -1488,7 +1780,7 @@ async function triggerRevote(){
         .map((ou,oi)=>({ou,oi}))
         .filter(x=>x.oi!==i)
         .map(x=>({ name:x.ou.name, reason:prevVotes[x.oi].reason, question:prevVotes[x.oi].question }));
-      const v = await askUnitRevote(unit, q, ctx, prevVotes[i], opponents);
+      const v = await askUnitRevote(unit, q, ctx, prevVotes[i], opponents, i);
       newVotes.push(v);
       renderResult(unit, v);
     }
@@ -1562,10 +1854,19 @@ function boot(){
   $("hist-date-filter").onchange = applyHistoryFilter;
   $("hist-cat-filter").onchange = applyHistoryFilter;
   $("hist-show-archived").onchange = applyHistoryFilter;
+  $("gate-submit").onclick = gateSubmit;
+  $("gate-anchor").onclick = gateAnchor;
+  $("gate-cancel").onclick = gateCancel;
+  $("cfg-gate").checked = gateOn();
+  $("cfg-gate").onchange = ()=>{
+    setGateOn($("cfg-gate").checked);
+    clog(`證據閘門已${$("cfg-gate").checked?"開啟 — 議案太模糊會先反問":"關閉 — 議案再模糊也直接審議"}`, "ln-sys");
+  };
 
   clog("MAGI SYSTEM 起動 — 第7世代有機電腦 · 人格移植OS");
   renderHistory();
   renderReview();
+  renderFlywheel();
   syncFromSupabase();
 }
 
