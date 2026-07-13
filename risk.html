@@ -100,8 +100,17 @@ button:focus-visible,details summary:focus-visible{outline:2px solid var(--cyan)
 .verdict .vjudge.j-hold{color:var(--yellow)}
 .verdict .vvotes{font-size:11px;color:var(--dim);letter-spacing:2px;margin-bottom:10px}
 .verdict .vjudge~.vtitle{font-size:22px;letter-spacing:3px}
-.verdict .vtao{margin-top:10px;font-size:12.5px;color:#d4b46a;letter-spacing:1px;line-height:1.7}
-.verdict .vtao span{color:var(--dim);font-size:10.5px}
+.tao-box{border:1px solid #6b5a2e;background:var(--panel);padding:14px 16px;margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.tao-title{font-size:11px;color:#d4b46a;letter-spacing:2px;margin-bottom:10px}
+.tao-verse{font-size:16px;color:#d4b46a;line-height:1.8;letter-spacing:1px}
+.tao-ch{font-size:11px;color:var(--dim);margin-left:8px;letter-spacing:0}
+.tao-mech{font-size:11.5px;color:var(--dim);line-height:1.8;margin-top:4px;padding-bottom:8px;border-bottom:1px solid #2a2a33}
+.tao-read{font-size:13.5px;color:var(--text);line-height:2;margin-top:10px}
+.tao-counsel{font-size:13.5px;color:var(--yellow);line-height:1.9;margin-top:8px;border-left:3px solid #d4b46a;padding-left:10px}
+.tao-inline{border-left:2px solid #6b5a2e;padding-left:10px;margin-top:4px}
+.tao-inline .tao-verse{font-size:14px}
+.tao-inline .tao-read{font-size:12.5px;line-height:1.9}
+.tao-inline .tao-counsel{font-size:12.5px}
 .bayes-chain{line-height:2}
 .bayes-chain .bu{color:var(--green)}
 .bayes-chain .bd{color:var(--red)}
@@ -337,13 +346,14 @@ footer{text-align:center;font-size:9px;color:#443c30;letter-spacing:2px;margin:2
   <div class="vsub" id="vsub"></div>
   <div class="vevi" id="vevi"></div>
   <div class="valert" id="valert"></div>
-  <div class="vtao" id="vtao"></div>
   <div class="rangebar" id="rangebar" style="display:none">
     <div class="band" id="rb-band"></div>
     <div class="pin" id="rb-pin"></div>
     <span class="tick" style="left:0%">0</span><span class="tick" style="left:50%">50</span><span class="tick" style="left:100%">100</span>
   </div>
 </div>
+
+<div class="tao-box" id="tao-box" style="display:none"></div>
 
 <div class="matrix-box" id="matrix-box" style="display:none">
   <div class="mtitle">風險矩陣 / RISK MATRIX　<span class="gloss">橫軸＝多容易發生，縱軸＝發生了多嚴重；越右上越該處理。★＝三腦的共識位置，G/S/A＝慾望/恐懼/理性腦各自的位置</span></div>
@@ -547,6 +557,59 @@ const BASE_RATES = [
   { k:"台灣婚姻", v:"離結比約四成上下（粗離婚率約 2.2‰）；全體統計，個案差異極大", src:"內政部戶政統計" }
 ];
 const BASE_RATE_TEXT = BASE_RATES.map(b=>`・【${b.k}】${b.v}（${b.src}）`).join("\n");
+
+// ━━ 道德經因果觀章句庫（唯一允許引用的來源；模型可自由解讀，但不准編造經文）━━
+// 每條都附「因果機制」——這是重點：道德經在這裡不是格言裝飾，是一套看因果的視角。
+const TAO_CANON = [
+  // 反轉：物極必反
+  { v:"反者道之動，弱者道之用。", c:"第40章", m:"事物走到極端就會轉向反面；示弱反而是道發揮作用的方式。最強的趨勢裡已經藏著反轉的種子。" },
+  { v:"禍兮福之所倚，福兮禍之所伏。", c:"第58章", m:"災禍裡靠著福氣，福氣裡藏著災禍。同一件事的好壞會互相轉化，關鍵在你怎麼接。" },
+  { v:"飄風不終朝，驟雨不終日。", c:"第23章", m:"狂風刮不了一早上，暴雨下不了一整天。極端狀態無法持久，會自己回到均值。" },
+  // 上游：因果鏈的源頭
+  { v:"為之於未有，治之於未亂。", c:"第64章", m:"在還沒發生時就處理，在還沒亂時就治理。因果鏈的上游動一分，勝過下游動十分。" },
+  { v:"圖難於其易，為大於其細。天下難事，必作於易；天下大事，必作於細。", c:"第63章", m:"難事從容易處下手，大事從細節做起。看似難解的因果，入口永遠在最簡單的那一環。" },
+  { v:"合抱之木，生於毫末；九層之臺，起於累土。", c:"第64章", m:"大樹從嫩芽長起，高臺從一筐土堆起。結果是「累積」的函數，不是「意志」的函數。" },
+  // 柔勝剛：不硬碰結構
+  { v:"柔弱勝剛強。", c:"第36章", m:"硬碰硬會斷，柔軟能穿透。正面對抗一個結構，不如讓那個結構自己讓路。" },
+  { v:"上善若水。水善利萬物而不爭，處眾人之所惡，故幾於道。", c:"第8章", m:"最高的善像水：滋養萬物卻不爭奪，待在眾人都不要的低處。沒有稜角，就沒有可被攻擊的地方。" },
+  { v:"夫唯不爭，故天下莫能與之爭。", c:"第22章", m:"正因為不爭，天下才沒人爭得過他。爭奪本身會製造對手；停止爭奪，對手就消失了。" },
+  { v:"天下之至柔，馳騁天下之至堅。", c:"第43章", m:"最柔軟的能穿透最堅硬的。水滴石穿靠的不是力量，是時間與持續。" },
+  // 欲速不達
+  { v:"企者不立，跨者不行。", c:"第24章", m:"踮腳站不久，跨大步走不遠。急於求成的姿勢本身就不可持續，越用力垮得越快。" },
+  { v:"大器晚成。", c:"第41章", m:"真正的大器需要長時間才能完成。把「還沒成」誤讀成「不會成」，是因果判斷最常見的錯誤。" },
+  { v:"慎終如始，則無敗事。", c:"第64章", m:"收尾時像開頭一樣謹慎，就不會失敗。多數失敗發生在「快好了」的鬆懈裡。" },
+  // 以退為進
+  { v:"將欲歙之，必固張之；將欲弱之，必固強之；將欲取之，必固與之。", c:"第36章", m:"想收合先擴張，想拿走先給予。要得到，得先付出——這不是權謀，是因果的方向性。" },
+  { v:"曲則全，枉則直；窪則盈，敝則新。", c:"第22章", m:"彎曲反而保全，迂迴反而走直。直線衝撞的路徑，往往不是最快到達的路徑。" },
+  { v:"後其身而身先，外其身而身存。", c:"第7章", m:"把自己放在後面，反而站到前面。不急著要，反而先得到。" },
+  // 知止：停在哪裡
+  { v:"知足不辱，知止不殆，可以長久。", c:"第44章", m:"知足就不受辱，知止就不危險。停損點不是失敗，是長久的條件。" },
+  { v:"知不知，上；不知知，病。", c:"第71章", m:"知道自己不知道是上等；不知道卻以為知道是病。承認無知本身就是一種知。" },
+  { v:"知人者智，自知者明。勝人者有力，自勝者強。", c:"第33章", m:"看透別人是智，看透自己是明。贏別人靠力氣，贏自己才是真強。" },
+  // 無為：順勢而非逆勢
+  { v:"為學日益，為道日損。損之又損，以至於無為。無為而無不為。", c:"第48章", m:"求學天天增加，求道天天減少。減到不強行干預，反而沒有事情做不成。" },
+  { v:"以輔萬物之自然，而不敢為。", c:"第64章", m:"順著事物本來的樣子去輔助，不敢強加作為。順勢的力量遠大於逆勢的意志。" },
+  { v:"治大國若烹小鮮。", c:"第60章", m:"治理大國像煎小魚，不能一直翻動。過度干預會把事情弄碎。" }
+];
+const TAO_CANON_TEXT = TAO_CANON.map((t,i)=>`${i+1}. 「${t.v}」（${t.c}）\n   因果機制：${t.m}`).join("\n");
+
+const TAO_SYS = `你是 MAGI RISK 的道家因果解讀者。三個人性腦已經算完機率——你的任務**不是**再給一個數字或一句勵志格言，而是用《道德經》的因果觀，看穿這件事的**力量結構**：力氣往哪個方向使、為什麼會這樣發展、哪裡是順勢、哪裡是逆勢。
+
+鐵律：
+1. 從下方章句庫選出**最能解釋本案因果結構**的一條——不是最勵志的、不是最有名的，是最能回答「這件事為什麼會這樣走」的那條。
+2. **絕對禁止引用庫外的章句、禁止自己編造原文或章節號**。庫裡沒有完美貼合的，就選最接近的，寧可稍微勉強也不准造假。
+3. 解讀必須**具體指涉本案的人、事、時間、力量關係**——看到「小夏」就講小夏，看到「制度」就講那個制度。禁止寫放諸四海皆準的空話（例如「凡事順其自然」「保持平常心」這種誰都適用的廢話）。
+4. 你要解釋的是**因果**：誰在對抗誰、什麼力量在累積、哪個方向是「反者道之動」、時間站在誰那邊。
+5. 建議要跟三腦的干預點**呼應或補充**，不是複述。
+
+章句庫（唯一允許引用的來源）：
+${TAO_CANON_TEXT}
+
+只輸出純 JSON 物件，不得有任何其他文字：
+{"verse":"從庫中選的章句原文（一字不改，完整照抄）",
+"chapter":"該章句的章節號（從庫中照抄）",
+"reading":"用這條的因果機制解讀本案：這件事的力量結構是什麼、誰在對抗誰、時間站在哪一邊、為什麼三腦給出這個機率（2-4 句，必須具體指涉本案的人事物）",
+"counsel":"因此該怎麼做（一句話，具體可行，補充而非重複三腦的干預點）"}`;
 
 // ━━ 證據守門員：三腦推算前先驗證據充分度。不足就反問（單輪最多 4 題），不硬猜 ━━
 const EVIDENCE_SYS = `你是 MAGI RISK 的證據守門員。你唯一的任務是判斷「現有資訊是否足以做出可信的機率預測」——你自己不要預測機率。
@@ -907,6 +970,39 @@ function gateCancel(){
   clog("已取消本次預測", "ln-sys");
 }
 
+// ━━ 道家因果解讀：三腦算完之後的一層「看因果」，不是貼格言 ━━
+// 反幻覺：回傳的經文必須逐字命中章句庫，否則整段作廢（寧可退回規則引擎的一句話，也不要一段編造的經文）。
+async function askTao(q, ctx, deadline, agg, oks, engKey){
+  const today = new Date().toISOString().slice(0,10);
+  const brainLines = oks.map(f=>{
+    const lever = (f.causal && f.causal.lever) ? `｜干預點：${f.causal.lever}` : "";
+    const chain = (f.causal && f.causal.chain) ? `｜因果鏈：${f.causal.chain}` : "";
+    return `・${BRAIN_LABEL[f.brain]||f.brain}：${f.probability}%${chain}${lever}\n　理由：${f.reason||""}`;
+  }).join("\n");
+  const messages = [
+    { role:"system", content: TAO_SYS },
+    { role:"user", content: `今天日期：${today}\n命題：${q}${ctx?`\n背景：${ctx}`:""}${deadline?`\n期限：${deadline}`:""}\n\n三腦的推算結果：\n${brainLines}\n\n聚合：總機率 ${agg.median}%（三腦分歧 ${agg.spread} 點）｜${zoneLabel(agg.zone)}（可能性 ${agg.likelihood} × 影響 ${agg.impact}）` }
+  ];
+  const raw = await callEngine(engKey, messages, { temperature: 0.5, num_predict: 700 });
+  const v = parseJsonLoose(raw);
+
+  // ★ 程式層驗證：經文必須在庫裡（先精確比對，再容忍標點差異的正規化比對）
+  const norm = s => String(s||"").replace(/[\s，。；：、「」（）,.;:()]/g, "");
+  const want = norm(v.verse);
+  const hit = TAO_CANON.find(t => t.v === v.verse) || TAO_CANON.find(t => norm(t.v) === want);
+  if(!hit){
+    clog(`道家解讀引用了庫外經文（可能是幻覺）— 本次作廢，退回規則章句`, "ln-err");
+    return null;
+  }
+  const reading = String(v.reading||"").slice(0,300);
+  if(reading.length < 15) return null;   // 空話/太短，不採用
+  return {
+    verse: hit.v, chapter: hit.c, mechanism: hit.m,   // 經文/章節/機制一律用庫裡的版本，不用模型回傳的
+    reading,
+    counsel: String(v.counsel||"").slice(0,150)
+  };
+}
+
 // ━━ 多數決（程式層強制映射，不信 prompt）：後驗≥55=會發生票、≤45=不會票、之間=保留 ━━
 function probVote(p){ return p>=55 ? "會" : p<=45 ? "不會" : "保留"; }
 function decideVotes(oks){
@@ -991,13 +1087,30 @@ function renderVerdict(agg, jd){
   else if(agg.spread >= 30){ a.style.color = "var(--red)"; a.textContent = `⚠ 三腦重度分歧（差距 ${agg.spread} 點）— 不確定性本身就是警報，先補資訊再決策`; }
   else if(agg.spread >= 15){ a.style.color = "var(--yellow)"; a.textContent = `△ 三腦意見分歧（差距 ${agg.spread} 點）— 建議看各腦理由找分歧點`; }
   else { a.style.color = "var(--green)"; a.textContent = `✓ 三腦共識良好（差距 ${agg.spread} 點）`; }
-  const tao = laoTzu(agg);
-  $("vtao").innerHTML = `道德經曰「${tao.t}」<span>— ${tao.w}</span>`;
   const bar = $("rangebar");
   bar.style.display = "block";
   $("rb-band").style.left = agg.lo+"%";
   $("rb-band").style.width = Math.max(1,(agg.hi-agg.lo))+"%";
   $("rb-pin").style.left = agg.median+"%";
+}
+
+// 道家因果區塊：有 AI 解讀就顯示完整版（經文＋因果機制＋本案解讀＋建議）；
+// 沒有（舊記錄／AI 失敗／引用了庫外經文被作廢）就退回規則引擎的一句話。
+function taoHtml(agg, tao){
+  if(tao){
+    return `<div class="tao-verse">「${esc(tao.verse)}」<span class="tao-ch">${esc(tao.chapter)}</span></div>
+      <div class="tao-mech">因果機制：${esc(tao.mechanism)}</div>
+      <div class="tao-read">${esc(tao.reading)}</div>
+      ${tao.counsel?`<div class="tao-counsel">因此：${esc(tao.counsel)}</div>`:""}`;
+  }
+  if(!agg) return "";
+  const t = laoTzu(agg);
+  return `<div class="tao-verse">「${esc(t.t)}」</div><div class="tao-mech">${esc(t.w)}</div>`;
+}
+function renderTao(agg, tao){
+  const box = $("tao-box");
+  box.innerHTML = `<div class="tao-title">道家因果 / TAO <span class="gloss">＝用道德經的因果觀，看這件事的力量結構往哪走</span></div>${taoHtml(agg, tao)}`;
+  box.style.display = "block";
 }
 
 function renderMatrix(agg, oks){
@@ -1206,6 +1319,17 @@ async function run(){
     renderVerdict(agg, jd);
     renderMatrix(agg, oks);
     renderResults(forecasts);
+
+    // 道家因果解讀（三腦算完之後才跑，因為要看它們的因果鏈與干預點）
+    let tao = null;
+    prailSet("道家因果解讀中...");
+    try{
+      tao = await askTao(q, ctx, deadline, agg, oks, fleet[0]);
+      if(tao) clog(`道家因果：「${tao.verse}」（${tao.chapter}）`, "ln-ok");
+    }catch(e){
+      clog(`道家解讀失敗（${e.message}）— 退回規則章句`, "ln-err");
+    }
+    renderTao(agg, tao);
     if(agg.evLoss != null){
       $("ev-loss").value = agg.evLoss;
       $("ev-cost").value = agg.evCost;
@@ -1214,7 +1338,7 @@ async function run(){
       $("ev-box").open = true;
     }
     recalcEV();
-    const pred = { no:useNo, q, ctx, deadline, forecasts, agg, outcome:null, scores:null,
+    const pred = { no:useNo, q, ctx, deadline, forecasts, agg, tao, outcome:null, scores:null,
       rev: revising ? (revising.rev||0)+1 : 0,
       prevMedian: revising && revising.agg ? revising.agg.median : null,
       t: Date.now() };
@@ -1498,6 +1622,7 @@ function renderHistory(){
         ${p.ctx?`<div class="sec">背景</div><div>${esc(p.ctx)}</div>`:""}
         <div class="sec">期限</div><div>${p.deadline||"未定"}</div>
         ${jdLine}
+        ${(p.tao||p.agg)?`<div class="sec">道家因果 <span class="gloss">＝用道德經的因果觀看這件事的力量結構</span></div><div class="tao-inline">${taoHtml(p.agg, p.tao)}</div>`:""}
         <div class="sec">三腦各自推定</div><ul>${fLines}</ul>
         ${scoreLine}
       </div>
@@ -1642,8 +1767,39 @@ function drawShareBody(ctx, p, W){
   if(p.deadline) section("判定期限", p.deadline);
   if(p.outcome) section("實際結果", p.outcome, p.outcome==="發生" ? "#33ff77" : p.outcome==="未發生" ? "#ff3344" : "#7a7468");
 
-  // 道德經章句
-  if(p.agg){
+  // 道家因果（有 AI 解讀就畫完整版，否則退回規則章句一行）
+  if(p.tao){
+    ctx.fillStyle = "#7a7468";
+    ctx.font = `22px ${fMono}`;
+    ctx.fillText("道家因果 / TAO", 90, y);
+    y += 46;
+    ctx.fillStyle = "#d4b46a";
+    ctx.font = `bold 32px ${fSans}`;
+    wrapCanvasText(ctx, `「${p.tao.verse}」`, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 44; });
+    ctx.fillStyle = "#7a7468";
+    ctx.font = `22px ${fMono}`;
+    ctx.fillText(p.tao.chapter, 90, y);
+    y += 40;
+    ctx.fillStyle = "#7a7468";
+    ctx.font = `24px ${fSans}`;
+    wrapCanvasText(ctx, `因果機制：${p.tao.mechanism}`, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 34; });
+    y += 16;
+    ctx.fillStyle = "#e8e0d0";
+    ctx.font = `28px ${fSans}`;
+    wrapCanvasText(ctx, p.tao.reading, W-180).forEach(line=>{ ctx.fillText(line, 90, y); y += 42; });
+    if(p.tao.counsel){
+      y += 12;
+      wrapCanvasText(ctx, `因此：${p.tao.counsel}`, W-230).forEach(line=>{
+        ctx.fillStyle = "#d4b46a";
+        ctx.fillRect(90, y-30, 6, 42);
+        ctx.fillStyle = "#ffcc33";
+        ctx.font = `28px ${fSans}`;
+        ctx.fillText(line, 116, y);
+        y += 42;
+      });
+    }
+    y += 30;
+  }else if(p.agg){
     const tao = laoTzu(p.agg);
     wrapCanvasText(ctx, `「${tao.t}」${tao.w}`, W-230).forEach(line=>{
       ctx.fillStyle = "#38bdf8";
@@ -1767,7 +1923,16 @@ function buildFlexBubble(p){
   sec("最該下手的地方", pickField(p, "arbiter", "causal", "lever") || pickField(p, "gambler", "causal", "lever"), "#38bdf8");
   if(p.deadline) sec("判定期限", p.deadline);
   if(p.outcome) sec("實際結果", p.outcome, p.outcome==="發生"?"#33ff77":"#ff3344");
-  if(p.agg){
+  if(p.tao){
+    body.push({ type:"box", layout:"vertical", margin:"md", paddingAll:"12px", borderColor:"#d4b46a", borderWidth:"medium", cornerRadius:"4px", spacing:"sm",
+      contents:[
+        { type:"text", text:"道家因果", size:"xs", color:"#7a7468" },
+        { type:"text", text:`「${p.tao.verse}」${p.tao.chapter}`, wrap:true, size:"sm", weight:"bold", color:"#d4b46a" },
+        { type:"text", text:`因果機制：${p.tao.mechanism}`, wrap:true, size:"xs", color:"#7a7468" },
+        { type:"text", text: p.tao.reading, wrap:true, size:"sm", color:"#e8e0d0" },
+        ...(p.tao.counsel ? [{ type:"text", text:`因此：${p.tao.counsel}`, wrap:true, size:"sm", color:"#ffcc33" }] : [])
+      ] });
+  }else if(p.agg){
     const tao = laoTzu(p.agg);
     body.push({ type:"box", layout:"vertical", margin:"md", paddingAll:"10px", borderColor:"#38bdf8", borderWidth:"medium", cornerRadius:"4px",
       contents:[{ type:"text", text:`「${tao.t}」${tao.w}`, wrap:true, size:"sm", color:"#d4b46a" }] });
