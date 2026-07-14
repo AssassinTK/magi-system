@@ -63,6 +63,7 @@ details .body{padding:0 12px 12px;font-size:12.5px;line-height:1.9;color:var(--t
 .tag{font-size:10px;padding:1px 7px;border:1px solid;white-space:nowrap}
 .tag.ok{color:var(--green);border-color:var(--green)}
 .tag.bad{color:var(--red);border-color:var(--red)}
+.tag.skip{color:#8a8172;border-color:#3a352e}
 .tag.dim{color:var(--dim);border-color:#444}
 .date{color:var(--dim);font-size:10.5px}
 
@@ -195,6 +196,9 @@ let ROWS = [];
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+// correct 為 null＝三腦/三賢人全數失敗＝沒作答，不是答錯——當機不該看起來像判斷失準
+function tagCls(c){ return c==null ? "skip" : c ? "ok" : "bad"; }
+function tagTxt(c){ return c==null ? "未作答" : c ? "判對" : "判錯"; }
 
 async function sbRpc(fn, args){
   const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -207,11 +211,18 @@ async function sbRpc(fn, args){
   return t ? JSON.parse(t) : null;
 }
 
-// 成績只計「同一模型」——不同模型能力天差地別，混在一起算平均會得出無意義的數字
-function summarize(rows, model){
-  const same = rows.filter(r=>r.model===model);
-  const riskOk = same.filter(r=>r.risk && r.risk.correct).length;
-  const magiOk = same.filter(r=>r.magi && r.magi.correct).length;
+// 成績只計「同一模型 × 同一 prompt 版本」：
+// 不同模型能力天差地別；不同 prompt 根本是不同的腦——改完推理框架實測 71%，
+// 若混入舊框架的紀錄成績單會顯示 28%，那是系統在對自己謊報能力。
+// 判對率的分母只算「真的答了」的題（correct 為 null＝三腦全掛＝沒答，不是答錯）。
+const pverOf = r => (r.risk && r.risk.pver) || (r.magi && r.magi.pver) || "(未標版)";
+
+function summarize(rows, model, pver){
+  const same = rows.filter(r=>r.model===model && pverOf(r)===pver);
+  const riskDone = same.filter(r=>r.risk && r.risk.correct!=null);
+  const magiDone = same.filter(r=>r.magi && r.magi.correct!=null);
+  const riskOk = riskDone.filter(r=>r.risk.correct).length;
+  const magiOk = magiDone.filter(r=>r.magi.correct).length;
   const brains = {}, sages = {};
   same.forEach(r=>{
     Object.entries((r.risk && r.risk.briers) || {}).forEach(([k,v])=>{
@@ -230,9 +241,10 @@ function summarize(rows, model){
   Object.values(brains).forEach(v=>{ v.brier = v.sum / v.n; });
   Object.values(sages).forEach(v=>{ v.rate = Math.round(v.hit/v.n*100); v.conf = Math.round(v.conf/v.n); });
   return {
-    n: same.length,
-    riskAcc: same.length ? Math.round(riskOk/same.length*100) : 0,
-    magiAcc: same.length ? Math.round(magiOk/same.length*100) : 0,
+    n: same.length, pver,
+    riskN: riskDone.length, magiN: magiDone.length,
+    riskAcc: riskDone.length ? Math.round(riskOk/riskDone.length*100) : 0,
+    magiAcc: magiDone.length ? Math.round(magiOk/magiDone.length*100) : 0,
     brains, sages
   };
 }
@@ -246,20 +258,24 @@ function render(){
     $("exams").innerHTML = "";
     return;
   }
-  // 以最新一筆的模型為「當前模型」
+  // 以最新一筆的模型 + prompt 版本為「當前這副腦」
   const model = ROWS[0].model;
-  const s = summarize(ROWS, model);
+  const pver = pverOf(ROWS[0]);
+  const s = summarize(ROWS, model, pver);
   const others = {};
-  ROWS.filter(r=>r.model!==model).forEach(r=>{ others[r.model] = (others[r.model]||0)+1; });
+  ROWS.filter(r=>!(r.model===model && pverOf(r)===pver)).forEach(r=>{
+    const k = r.model===model ? `舊版 prompt ${pverOf(r)}` : r.model;
+    others[k] = (others[k]||0)+1;
+  });
   const otherTxt = Object.entries(others).map(([m,n])=>`${m} ${n} 題`).join("、");
 
-  $("hstat").innerHTML = `當前模型 <span style="color:var(--cyan)">${esc(model)}</span><br>${otherTxt ? `另有 ${esc(otherTxt)}（不混計）` : "全部同一模型"}`;
+  $("hstat").innerHTML = `當前模型 <span style="color:var(--cyan)">${esc(model)}</span>　<span class="dim">prompt ${esc(pver)}</span><br>${otherTxt ? `另有 ${esc(otherTxt)}——模型或推理框架不同，不混計` : "全部同一副腦"}`;
   $("c-risk").innerHTML = `${s.riskAcc}<small>%</small>`;
-  $("c-risk-sub").textContent = `${s.n} 題`;
+  $("c-risk-sub").textContent = `${s.riskN} 題`;
   $("c-magi").innerHTML = `${s.magiAcc}<small>%</small>`;
-  $("c-magi-sub").textContent = `${s.n} 題`;
+  $("c-magi-sub").textContent = `${s.magiN} 題`;
   $("c-n").innerHTML = `${ROWS.length}<small> 題</small>`;
-  $("c-n-sub").textContent = otherTxt ? "含其他模型" : "";
+  $("c-n-sub").textContent = otherTxt ? "含舊版／其他模型" : "";
 
   const bRows = Object.entries(s.brains).sort((a,b)=>a[1].brier-b[1].brier);
   $("brains").innerHTML = bRows.length ? bRows.map(([k,v],i)=>{
@@ -310,8 +326,9 @@ function render(){
       <summary>
         <span><span class="date">${esc(r.quiz_date)}</span>　${esc(r.reveal||r.event_id)}</span>
         <span>
-          <span class="tag ${rk.correct?"ok":"bad"}">RISK ${rk.correct?"判對":"判錯"}</span>
-          <span class="tag ${mg.correct?"ok":"bad"}">MAGI ${mg.correct?"判對":"判錯"}</span>
+          <span class="tag ${tagCls(rk.correct)}">RISK ${tagTxt(rk.correct)}</span>
+          <span class="tag ${tagCls(mg.correct)}">MAGI ${tagTxt(mg.correct)}</span>
+          ${(r.model!==model || pverOf(r)!==pver) ? `<span class="tag skip">舊版·不計分</span>` : ""}
         </span>
       </summary>
       <div class="body">
